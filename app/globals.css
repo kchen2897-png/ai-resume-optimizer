@@ -1,0 +1,99 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+/* Textarea focus glow */
+textarea:focus,
+input:focus {
+  box-shadow: 0 0 0 3px rgba(92, 124, 250, 0.1);
+}
+
+/* ===== Editor Styles ===== */
+
+/* Dot grid canvas background */
+.editor-canvas-bg {
+  background-image: radial-gradient(circle, #d1d5db 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* Resume block card transitions */
+.resume-block-card {
+  transition: transform 200ms ease, box-shadow 200ms ease, opacity 200ms ease;
+}
+
+.resume-block-card.selected {
+  box-shadow: 0 0 0 2px rgba(92, 124, 250, 0.4);
+}
+
+/* Drag overlay */
+.drag-overlay {
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  transform: rotate(2deg) scale(1.02);
+}
+
+/* Block style bar visibility */
+.block-style-bar {
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity 150ms ease, transform 150ms ease;
+}
+
+.resume-block-card:hover .block-style-bar,
+.resume-block-card:focus-within .block-style-bar {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Animate slide up for mobile panels */
+@keyframes slide-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.animate-slide-up {
+  animation: slide-up 250ms ease-out;
+}
+
+/* Animate fade in for dropdowns */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fade-in 150ms ease-out;
+}
