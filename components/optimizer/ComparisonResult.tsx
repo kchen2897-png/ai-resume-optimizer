@@ -58,7 +58,7 @@ export default function ComparisonResult({ data }: { data: ComparisonResultType 
       {/* Score bar + send to builder */}
       <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
         <div className="flex items-center gap-4">
-          <ScoreCard score={data.score} size="full" />
+          <ScoreCard score={data.score} />
           <div className="flex-1">
             <p className="text-sm font-semibold text-gray-800">{data.summary}</p>
           </div>
