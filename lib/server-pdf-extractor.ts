@@ -162,8 +162,8 @@ async function extractWithPdfParse(
   pdfBuffer: Buffer
 ): Promise<ExtractionResult> {
   try {
-    // Use require for bundler compatibility
-    const pdfParse = eval('require')('pdf-parse');
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const pdfParse = require('pdf-parse');
     const data = await pdfParse(pdfBuffer);
 
     if (data.text?.trim()) {
