@@ -79,6 +79,8 @@ export interface BlockStyles {
   paddingTop: number;
   paddingBottom: number;
   lineHeight: number;
+  itemSpacing: number;
+  titleFontSize: number;
 }
 
 export const DEFAULT_BLOCK_STYLES: BlockStyles = {
@@ -92,6 +94,8 @@ export const DEFAULT_BLOCK_STYLES: BlockStyles = {
   paddingTop: 8,
   paddingBottom: 8,
   lineHeight: 1.6,
+  itemSpacing: 8,
+  titleFontSize: 17,
 };
 
 export const FONT_OPTIONS = [
@@ -189,7 +193,7 @@ export function createModule(type: ModuleType, order: number): ResumeModule {
   const id = nanoid();
   const base = { id, title: MODULE_TYPE_LABELS[type], styles: { ...DEFAULT_BLOCK_STYLES }, order, isCollapsed: false };
   switch (type) {
-    case 'header': return { ...base, type: 'header', content: '', photo: '', styles: { ...DEFAULT_BLOCK_STYLES, fontSize: 22, paddingTop: 4, paddingBottom: 12 } };
+    case 'header': return { ...base, type: 'header', content: '', photo: '', styles: { ...DEFAULT_BLOCK_STYLES, fontSize: 18, paddingTop: 2, paddingBottom: 6, itemSpacing: 0 } };
     case 'education': return { ...base, type: 'education', items: [] };
     case 'workExperience': case 'internshipExperience': case 'campusExperience':
       return { ...base, type, items: [] } as any;
@@ -212,7 +216,7 @@ export interface ResumeDocument {
 }
 
 export type EditorAction =
-  | { type: 'LOAD_MODULES'; modules: ResumeModule[]; fileName?: string | null; mode?: 'pre-optimize' | 'post-optimize' }
+  | { type: 'LOAD_MODULES'; modules: ResumeModule[]; fileName?: string | null; mode?: 'pre-optimize' | 'post-optimize'; _internal?: boolean }
   | { type: 'SET_MODE'; mode: 'pre-optimize' | 'post-optimize' }
   | { type: 'UPDATE_MODULE_TITLE'; id: string; title: string }
   | { type: 'UPDATE_MODULE_STYLES'; id: string; styles: Partial<BlockStyles> }

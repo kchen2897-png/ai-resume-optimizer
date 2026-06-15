@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, ChevronDown, ChevronRight, Trash2, Pencil, Plus, X, Camera, ImageIcon } from 'lucide-react';
@@ -222,9 +222,15 @@ function HeaderEditor({ moduleId, content, photo, targetRole = '' }: { moduleId:
   const [fields, setFields] = useState({ name, phone, email, city });
   const [showRaw, setShowRaw] = useState(false);
   const [dragOverPhoto, setDragOverPhoto] = useState(false);
+  const internalChange = useRef(false);
 
-  // Sync fields when content changes externally (e.g. AI polish, import from optimizer)
+  // Sync fields when content changes EXTERNALLY (e.g. AI polish, import from optimizer)
+  // Skip sync when we triggered the change ourselves via updateField
   useEffect(() => {
+    if (internalChange.current) {
+      internalChange.current = false;
+      return;
+    }
     const parsed = parseHeaderContent(content);
     setFields({ name: parsed.name, phone: parsed.phone, email: parsed.email, city: parsed.city });
   }, [content]);
@@ -232,6 +238,7 @@ function HeaderEditor({ moduleId, content, photo, targetRole = '' }: { moduleId:
   function updateField(key: string, value: string) {
     const next = { ...fields, [key]: value };
     setFields(next);
+    internalChange.current = true;
     dispatch({ type: 'UPDATE_HEADER_CONTENT', id: moduleId, content: composeHeaderContent(next) });
   }
 

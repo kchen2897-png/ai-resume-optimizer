@@ -12,6 +12,7 @@ export default function ExportMenu() {
   const [open, setOpen] = useState(false);
   const [done, setDone] = useState<string | null>(null);
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -38,6 +39,7 @@ export default function ExportMenu() {
 
   async function downloadPDF() {
     setPdfLoading(true);
+    setPdfError(null);
     setOpen(false);
 
     try {
@@ -66,7 +68,7 @@ export default function ExportMenu() {
       setTimeout(() => setDone(null), 2000);
     } catch (err) {
       console.error('PDF export failed:', err);
-      alert(err instanceof Error ? err.message : 'PDF 导出失败，请稍后重试');
+      setPdfError(err instanceof Error ? err.message : 'PDF 导出失败，请稍后重试');
     } finally {
       setPdfLoading(false);
     }
@@ -86,6 +88,10 @@ export default function ExportMenu() {
         )}
         {pdfLoading ? '生成中...' : '导出'}
       </button>
+
+      {pdfError && (
+        <p className="mt-1.5 text-xs text-red-500">{pdfError}</p>
+      )}
 
       {open && (
         <div className="absolute right-0 top-full mt-2 w-56 rounded-xl border border-gray-100 bg-white shadow-lg z-50 py-1 animate-fade-in">

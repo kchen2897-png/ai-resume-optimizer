@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useReducer, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, useReducer, useCallback, useRef, useEffect, useState, type ReactNode } from 'react';
 import type {
   ResumeDocument, EditorAction, EditorState, ResumeModule, ModuleType,
   BlockStyles,
@@ -8,9 +8,31 @@ import type {
 import { DEFAULT_BLOCK_STYLES, createModule } from '@/lib/editor-types';
 
 const MAX_HISTORY = 50;
+const AUTOSAVE_KEY = 'resume-builder-autosave';
+
+function loadAutosave(): ResumeModule[] | null {
+  try {
+    const raw = localStorage.getItem(AUTOSAVE_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    if (Array.isArray(data) && data.length > 0) return data;
+  } catch {}
+  return null;
+}
+
+function saveAutosave(modules: ResumeModule[]) {
+  try {
+    if (modules.length > 0) {
+      localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(modules));
+    } else {
+      localStorage.removeItem(AUTOSAVE_KEY);
+    }
+  } catch {}
+}
 
 function createInitialDocument(): ResumeDocument {
-  return { modules: [], mode: 'pre-optimize', selectedModuleId: null, fileName: null };
+  const saved = loadAutosave();
+  return { modules: saved || [], mode: 'pre-optimize', selectedModuleId: null, fileName: null };
 }
 
 function createInitialState(): EditorState {
@@ -50,6 +72,9 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
   switch (action.type) {
 
     case 'LOAD_MODULES': {
+      if (action._internal) {
+        return { ...state, document: { ...state.document, modules: action.modules, mode: action.mode ?? 'pre-optimize', fileName: action.fileName ?? null, selectedModuleId: null } };
+      }
       const ns = pushHistory(state);
       return { ...ns, document: { ...ns.document, modules: action.modules, mode: action.mode ?? 'pre-optimize', fileName: action.fileName ?? null, selectedModuleId: null } };
     }
@@ -190,31 +215,52 @@ interface EditorContextValue {
   redo: () => void;
   canUndo: boolean;
   canRedo: boolean;
+  hasSavedData: boolean;
+  clearSavedData: () => void;
 }
 
 const EditorContext = createContext<EditorContextValue | null>(null);
 
 export function EditorProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(editorReducer, undefined, createInitialState);
+  const [hasSavedData, setHasSavedData] = useState(() => loadAutosave() !== null);
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const canUndo = state.historyIndex >= 0;
   const canRedo = state.historyIndex < state.history.length - 1;
+
+  // Auto-save modules to localStorage (debounced 800ms)
+  useEffect(() => {
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      saveAutosave(state.document.modules);
+      setHasSavedData(state.document.modules.length > 0);
+    }, 800);
+    return () => {
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+    };
+  }, [state.document.modules]);
 
   const undo = useCallback(() => {
     if (canUndo) {
       const doc = state.history[state.historyIndex];
-      dispatch({ type: 'LOAD_MODULES', modules: doc.modules, mode: doc.mode });
+      dispatch({ type: 'LOAD_MODULES', modules: doc.modules, mode: doc.mode, _internal: true });
     }
   }, [canUndo, state.history, state.historyIndex]);
 
   const redo = useCallback(() => {
     if (canRedo) {
       const doc = state.history[state.historyIndex + 1];
-      dispatch({ type: 'LOAD_MODULES', modules: doc.modules, mode: doc.mode });
+      dispatch({ type: 'LOAD_MODULES', modules: doc.modules, mode: doc.mode, _internal: true });
     }
   }, [canRedo, state.history, state.historyIndex]);
 
+  const clearSavedData = useCallback(() => {
+    localStorage.removeItem(AUTOSAVE_KEY);
+    setHasSavedData(false);
+  }, []);
+
   return (
-    <EditorContext.Provider value={{ state, dispatch, undo, redo, canUndo, canRedo }}>
+    <EditorContext.Provider value={{ state, dispatch, undo, redo, canUndo, canRedo, hasSavedData, clearSavedData }}>
       {children}
     </EditorContext.Provider>
   );

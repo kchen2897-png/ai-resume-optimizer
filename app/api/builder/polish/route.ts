@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { PolishRequest } from '@/lib/types';
-import { callDeepSeekPolish } from '@/lib/anthropic';
+import { callDeepSeekPolish } from '@/lib/deepseek';
 
 export async function POST(request: NextRequest) {
   try {

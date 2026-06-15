@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { OptimizeRequest } from '@/lib/types';
 import { callDeepSeekOptimize } from '@/lib/deepseek';
+import { parseResumeWithAI } from '@/lib/ai-parser';
 import { validateRequest } from '@/lib/validators';
+
+export const maxDuration = 60; // Two sequential AI calls need time
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,11 +22,34 @@ export async function POST(request: NextRequest) {
 
     const model = process.env.DEEPSEEK_MODEL || 'deepseek-chat';
 
-    const result = await callDeepSeekOptimize(body, apiKey, model);
+    // Step 1: Optimize (comparison-based)
+    const comparisonResult = await callDeepSeekOptimize(body, apiKey, model);
 
-    return NextResponse.json({ success: true, data: result });
+    // Step 2: Build optimized full text from all section comparisons
+    const optimizedText = comparisonResult.comparisons
+      .map((c) => c.optimizedText)
+      .join('\n\n');
+
+    if (!optimizedText.trim()) {
+      // No optimized text to parse — return comparison only
+      return NextResponse.json({
+        success: true,
+        data: comparisonResult,
+        modules: null,
+      });
+    }
+
+    // Step 3: Parse the optimized text into structured modules
+    const parseResult = await parseResumeWithAI(optimizedText);
+
+    return NextResponse.json({
+      success: true,
+      data: comparisonResult,
+      modules: parseResult.success ? parseResult.modules : null,
+      optimizedText: optimizedText,
+    });
   } catch (err: any) {
-    console.error('Optimizer error:', err);
+    console.error('Optimize-and-parse error:', err);
 
     const message = err.message || '优化失败，请重试';
     if (message.includes('API key') || message.includes('401') || message.includes('403')) {

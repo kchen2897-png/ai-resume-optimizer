@@ -1,57 +1,9 @@
 import OpenAI from "openai";
-import type { OptimizeResult, OptimizeRequest, ComparisonResult, PolishRequest, PolishResult } from "./types";
-import { buildSystemPrompt, buildUserPrompt } from "./prompts";
+import type { OptimizeRequest, ComparisonResult, PolishRequest, PolishResult } from "./types";
 import { buildOptimizerSystemPrompt, buildOptimizerUserPrompt } from "./prompts/optimizer";
 import { buildPolishSystemPrompt, buildPolishUserPrompt } from "./prompts/builder";
 
-export async function callClaudeAPI(
-  params: OptimizeRequest,
-  apiKey: string,
-  model: string
-): Promise<OptimizeResult> {
-  const client = new OpenAI({
-    apiKey,
-    baseURL: "https://api.deepseek.com",
-  });
-
-  const response = await client.chat.completions.create({
-    model,
-    temperature: 0.7,
-    max_tokens: 4096,
-    messages: [
-      { role: "system", content: buildSystemPrompt() },
-      { role: "user", content: buildUserPrompt(params) },
-    ],
-  });
-
-  const rawText = response.choices[0]?.message?.content?.trim() ?? "";
-
-  if (!rawText) {
-    throw new Error("AI 返回内容为空或格式不正确，请重试");
-  }
-
-  let parsed: OptimizeResult;
-  try {
-    parsed = JSON.parse(rawText) as OptimizeResult;
-  } catch {
-    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      try {
-        parsed = JSON.parse(jsonMatch[0]) as OptimizeResult;
-      } catch {
-        throw new Error("AI 返回内容解析失败，请重试");
-      }
-    } else {
-      throw new Error("AI 返回内容解析失败，请重试");
-    }
-  }
-
-  validateOptimizeResult(parsed);
-
-  return parsed;
-}
-
-// Module A: Comparison-based optimization
+// Comparison-based optimization
 export async function callDeepSeekOptimize(
   params: OptimizeRequest,
   apiKey: string,
@@ -98,7 +50,7 @@ export async function callDeepSeekOptimize(
   return parsed;
 }
 
-// Module B: Per-field text polishing
+// Per-field text polishing
 export async function callDeepSeekPolish(
   params: PolishRequest,
   apiKey: string,
@@ -154,30 +106,4 @@ function validateComparisonResult(data: unknown): asserts data is ComparisonResu
   if (typeof d.summary !== "string") throw new Error("AI 返回数据缺少 summary 字段");
   if (!d.matchAnalysis || typeof d.matchAnalysis !== "object") throw new Error("AI 返回数据缺少 matchAnalysis 字段");
   if (!Array.isArray(d.comparisons)) throw new Error("AI 返回数据缺少 comparisons 字段");
-}
-
-function validateOptimizeResult(data: unknown): asserts data is OptimizeResult {
-  const d = data as Record<string, unknown>;
-
-  if (typeof d.score !== "number") {
-    throw new Error("AI 返回数据缺少 score 字段");
-  }
-  if (typeof d.summary !== "string") {
-    throw new Error("AI 返回数据缺少 summary 字段");
-  }
-  if (!d.matchAnalysis || typeof d.matchAnalysis !== "object") {
-    throw new Error("AI 返回数据缺少 matchAnalysis 字段");
-  }
-  if (!Array.isArray(d.problems)) {
-    throw new Error("AI 返回数据缺少 problems 字段");
-  }
-  if (!Array.isArray(d.suggestions)) {
-    throw new Error("AI 返回数据缺少 suggestions 字段");
-  }
-  if (!d.atsKeywords || typeof d.atsKeywords !== "object") {
-    throw new Error("AI 返回数据缺少 atsKeywords 字段");
-  }
-  if (typeof d.rewrittenResume !== "string") {
-    throw new Error("AI 返回数据缺少 rewrittenResume 字段");
-  }
 }

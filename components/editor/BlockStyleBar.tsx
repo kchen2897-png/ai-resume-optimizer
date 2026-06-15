@@ -24,14 +24,27 @@ export default function BlockStyleBar({ styles, onChange }: Props) {
         ))}
       </select>
 
-      {/* Font size */}
+      {/* Body font size */}
       <select
         value={styles.fontSize}
         onChange={(e) => onChange({ fontSize: Number(e.target.value) })}
         className="h-7 w-14 rounded px-1 text-xs border border-gray-200 bg-white text-gray-700 cursor-pointer outline-none focus:border-brand-400"
+        title="正文字号"
       >
         {FONT_SIZE_OPTIONS.map((s) => (
-          <option key={s} value={s}>{s}px</option>
+          <option key={s} value={s}>{s}</option>
+        ))}
+      </select>
+
+      {/* Title font size */}
+      <select
+        value={styles.titleFontSize ?? styles.fontSize + 3}
+        onChange={(e) => onChange({ titleFontSize: Number(e.target.value) })}
+        className="h-7 w-14 rounded px-1 text-xs border border-gray-200 bg-white text-gray-700 cursor-pointer outline-none focus:border-brand-400 font-semibold"
+        title="标题字号"
+      >
+        {FONT_SIZE_OPTIONS.map((s) => (
+          <option key={s} value={s}>{s}</option>
         ))}
       </select>
 

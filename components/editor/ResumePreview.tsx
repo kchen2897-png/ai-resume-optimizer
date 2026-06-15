@@ -3,13 +3,14 @@
 import { useRef, useEffect } from 'react';
 import { useEditor } from '@/contexts/EditorContext';
 import { FileText } from 'lucide-react';
+import { parseHeader as parseHeaderPreview } from '@/lib/header-parser';
 import ExperienceHeader from './ExperienceHeader';
 import { isGridModule } from '@/lib/editor-types';
 
 const GRID = '2.2fr 1.2fr 1fr 1.4fr';
 
 // ── BulletList ────────────────────────────────────────────────
-function BulletList({ points, fontSize = 13, lineHeight = 1.55 }: { points: string[]; fontSize?: number; lineHeight?: number }) {
+function BulletList({ points, fontSize = 13, lineHeight = 1.55, gap = 6 }: { points: string[]; fontSize?: number; lineHeight?: number; gap?: number }) {
   const clean = points
     .map((p) => (p || '').replace(/^[-•·]\s*/, '').trim())
     .filter(Boolean);
@@ -17,7 +18,7 @@ function BulletList({ points, fontSize = 13, lineHeight = 1.55 }: { points: stri
   return (
     <>
       {clean.map((point, i) => (
-        <div key={i} style={{ gridColumn: '1 / -1', display: 'flex', gap: 6, fontSize, lineHeight, color: '#0f172a', paddingLeft: 2 }}>
+        <div key={i} style={{ gridColumn: '1 / -1', display: 'flex', gap, fontSize, lineHeight, color: '#0f172a', paddingLeft: 2 }}>
           <span style={{ marginTop: '0.55em', width: 4, height: 4, borderRadius: '50%', backgroundColor: '#0f172a', flexShrink: 0 }} />
           <span>{point}</span>
         </div>
@@ -31,7 +32,7 @@ function fmtDate(item: any): string {
   return '';
 }
 
-function EducationPreview({ item, fontSize = 13, lineHeight = 1.55 }: { item: any; fontSize?: number; lineHeight?: number }) {
+function EducationPreview({ item, fontSize = 13, lineHeight = 1.55, gap = 6 }: { item: any; fontSize?: number; lineHeight?: number; gap?: number }) {
   return (
     <>
       <ExperienceHeader
@@ -41,29 +42,31 @@ function EducationPreview({ item, fontSize = 13, lineHeight = 1.55 }: { item: an
         date={fmtDate(item)}
       />
       {item.gpa && (
-        <div style={{ gridColumn: '1 / -1', display: 'flex', gap: 6, fontSize, lineHeight, color: '#0f172a', paddingLeft: 2 }}>
+        <div style={{ gridColumn: '1 / -1', display: 'flex', gap, fontSize, lineHeight, color: '#0f172a', paddingLeft: 2 }}>
           <span style={{ marginTop: '0.55em', width: 4, height: 4, borderRadius: '50%', backgroundColor: '#0f172a', flexShrink: 0 }} />
           <span>GPA：{item.gpa}</span>
         </div>
       )}
       {item.courses && (
-        <div style={{ gridColumn: '1 / -1', display: 'flex', gap: 6, fontSize, lineHeight, color: '#0f172a', paddingLeft: 2 }}>
+        <div style={{ gridColumn: '1 / -1', display: 'flex', gap, fontSize, lineHeight, color: '#0f172a', paddingLeft: 2 }}>
           <span style={{ marginTop: '0.55em', width: 4, height: 4, borderRadius: '50%', backgroundColor: '#0f172a', flexShrink: 0 }} />
           <span>核心课程：{item.courses}</span>
         </div>
       )}
       {item.awards && (
-        <div style={{ gridColumn: '1 / -1', display: 'flex', gap: 6, fontSize, lineHeight, color: '#0f172a', paddingLeft: 2 }}>
+        <div style={{ gridColumn: '1 / -1', display: 'flex', gap, fontSize, lineHeight, color: '#0f172a', paddingLeft: 2 }}>
           <span style={{ marginTop: '0.55em', width: 4, height: 4, borderRadius: '50%', backgroundColor: '#0f172a', flexShrink: 0 }} />
           <span>获奖：{item.awards}</span>
         </div>
       )}
-      <BulletList points={item.bulletPoints || []} fontSize={fontSize} lineHeight={lineHeight} />
+      <BulletList points={item.bulletPoints || []} fontSize={fontSize} lineHeight={lineHeight} gap={gap} />
     </>
   );
 }
 
-function ExperiencePreview({ item, fontSize = 13, lineHeight = 1.55 }: { item: any; fontSize?: number; lineHeight?: number }) {
+type ExpItem = { organization: string; department: string; role: string; startDate: string; endDate: string; bulletPoints: string[] };
+
+function ExperiencePreview({ item, fontSize = 13, lineHeight = 1.55, gap = 6 }: { item: any; fontSize?: number; lineHeight?: number; gap?: number }) {
   return (
     <>
       <ExperienceHeader
@@ -72,115 +75,89 @@ function ExperiencePreview({ item, fontSize = 13, lineHeight = 1.55 }: { item: a
         right={item.role}
         date={fmtDate(item)}
       />
-      <BulletList points={item.bulletPoints || []} fontSize={fontSize} lineHeight={lineHeight} />
+      <BulletList points={item.bulletPoints || []} fontSize={fontSize} lineHeight={lineHeight} gap={gap} />
     </>
   );
 }
 
-function ProjectPreview({ item, fontSize = 13, lineHeight = 1.55 }: { item: any; fontSize?: number; lineHeight?: number }) {
+function ProjectPreview({ item, fontSize = 13, lineHeight = 1.55, gap = 6 }: { item: any; fontSize?: number; lineHeight?: number; gap?: number }) {
   return (
     <>
       <ExperienceHeader
         left={item.name}
-        middle={item.role}
-        right=""
+        middle=""
+        right={item.role}
         date={fmtDate(item)}
       />
-      <BulletList points={item.bulletPoints || []} fontSize={fontSize} lineHeight={lineHeight} />
+      <BulletList points={item.bulletPoints || []} fontSize={fontSize} lineHeight={lineHeight} gap={gap} />
     </>
   );
 }
 
-function parseHeaderPreview(content: string): { name: string; contacts: string[] } {
-  if (!content.trim()) return { name: '', contacts: [] };
-
-  const lines = content.split('\n').map((l) => l.trim()).filter(Boolean);
-  let name = '';
-  const rawContacts: string[] = [];
-
-  for (const line of lines) {
-    const hasLabel = /(电话|手机|邮箱|城市|地点|Email|Tel|Phone|Base|毕业院校|学历|民族|政治|出生)/.test(line);
-
-    if (!name && !hasLabel && line.length <= 20) {
-      name = line;
-    } else if (hasLabel || line.includes('@') || line.match(/^1\d{10}$/) || line.match(/\+?\d[\d\s-]{6,}/)) {
-      rawContacts.push(line);
-    } else if (!name) {
-      name = line;
-    } else {
-      rawContacts.push(line);
-    }
-  }
-
-  // Dedup: if name appears at the start of a contact line (e.g. "张三 | 电话：..."), strip it
-  const contacts = name
-    ? rawContacts.map((c) => {
-        const prefix = name + ' ';
-        if (c.startsWith(prefix + '|') || c === name) return c.slice(prefix.length).replace(/^\s*\|\s*/, '');
-        if (c.startsWith(name + '|') || c.startsWith(name + ' |')) {
-          const rest = c.slice(name.length).replace(/^\s*\|\s*/, '');
-          return rest || c;
-        }
-        return c;
-      })
-    : rawContacts;
-
-  return { name, contacts };
-}
-
-// ═══════════════════════════════════════════════════════════════
-export default function ResumePreview({ pagePadding }: { pagePadding?: number }) {
+export default function ResumePreview() {
   const { state } = useEditor();
   const { modules } = state.document;
-  const pad = pagePadding ?? '15mm';
+  const containerRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
 
   const sorted = modules.slice().sort((a, b) => a.order - b.order);
   const visible = sorted.filter((m) => !m.isCollapsed);
 
-  // Center content vertically when it doesn't fill the A4 page
+  // Re-center vertically when modules change
   useEffect(() => {
+    const container = containerRef.current;
     const inner = innerRef.current;
-    if (!inner) return;
+    if (!container || !inner) return;
     inner.style.marginTop = '0';
-    const contentH = inner.offsetHeight;
-    // A4 = 297mm, padding = 15mm × 2 = 30mm, content area = 267mm ≈ 1009px at 96dpi
-    const targetH = Math.round(267 * 96 / 25.4);
-    if (contentH < targetH) {
-      inner.style.marginTop = ((targetH - contentH) / 2) + 'px';
-    }
+    requestAnimationFrame(() => {
+      const contentH = inner.getBoundingClientRect().height;
+      const targetH = container.getBoundingClientRect().height;
+      if (contentH < targetH) {
+        inner.style.marginTop = ((targetH - contentH) / 2) + 'px';
+      } else {
+        inner.style.marginTop = '0';
+      }
+    });
   }, [modules]);
 
-  if (visible.length === 0) {
+  // ── EMPTY ──
+  if (!visible.length) {
     return (
-      <div className="flex h-full items-center justify-center bg-gray-50/50">
-        <div className="text-center px-4">
-          <FileText className="h-8 w-8 text-gray-300 mx-auto" />
-          <p className="mt-2 text-xs text-gray-400">暂无内容可预览</p>
+      <div className="flex-1 flex items-center justify-center" style={{ background: '#e5e7eb', minHeight: 600 }}>
+        <div className="text-center">
+          <FileText className="mx-auto h-8 w-8 text-gray-300" />
+          <p className="mt-2 text-sm text-gray-400">暂无简历内容</p>
+          <p className="text-xs text-gray-300">请先导入简历或添加模块</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="h-full overflow-auto bg-gray-100 flex justify-center py-8">
+    <div
+      ref={containerRef}
+      className="flex-1 flex justify-center overflow-y-auto"
+      style={{ background: '#e5e7eb', padding: '32px 16px' }}
+    >
       <div
-        className="bg-white flex-shrink-0"
+        ref={innerRef}
         style={{
-          width: '210mm',
-          height: '297mm',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.08), 0 8px 24px rgba(0,0,0,0.10), 0 0 0 1px rgba(0,0,0,0.04)',
-          padding: pad,
+          width: 794,                     // A4 width at ~96dpi (210mm)
+          minHeight: 1123,                // A4 height (297mm)
+          background: '#fff',
+          boxShadow: '0 2px 16px rgba(0,0,0,0.12)',
+          padding: 60,                    // ~15mm
+          fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
           boxSizing: 'border-box',
-          overflow: 'hidden',
         }}
       >
-        <div ref={innerRef}>
         {visible.map((mod, mi) => {
           const s = mod.styles;
           const font = `${s.fontFamily}, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
           const isLast = mi === visible.length - 1;
           const gridType = isGridModule(mod.type);
+          // Dynamic spacing: use itemSpacing for all gaps, default 8
+          const isp = s.itemSpacing ?? 8;
 
           return (
             <div key={mod.id}>
@@ -191,34 +168,31 @@ export default function ResumePreview({ pagePadding }: { pagePadding?: number })
                 const hasPhoto = !!photo;
 
                 return (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-                    {/* Left: Name + contacts */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: isp + 6 }}>
                     <div style={{ flex: 1 }}>
                       {parsed.name ? (
-                        <h1 style={{ fontFamily: font, fontSize: s.fontSize, fontWeight: 700, color: s.color, lineHeight: s.lineHeight, marginBottom: parsed.contacts.length ? 6 : 0 }}>
+                        <h1 style={{ fontFamily: font, fontSize: s.fontSize, fontWeight: 700, color: s.color, lineHeight: 1.3, marginBottom: parsed.contacts.length ? 2 : 0 }}>
                           {parsed.name}
                         </h1>
                       ) : !hasPhoto ? (
-                        <h1 style={{ fontFamily: font, fontSize: s.fontSize, fontWeight: 700, color: s.color, lineHeight: s.lineHeight, whiteSpace: 'pre-wrap' }}>
+                        <h1 style={{ fontFamily: font, fontSize: s.fontSize, fontWeight: 700, color: s.color, lineHeight: 1.3, whiteSpace: 'pre-wrap' }}>
                           {mod.content}
                         </h1>
                       ) : null}
                       {parsed.contacts.length > 0 && (
-                        <div style={{ fontFamily: font, fontSize: Math.round(s.fontSize * 0.55), color: '#64748b', lineHeight: 1.7 }}>
+                        <div style={{ fontFamily: font, fontSize: Math.round(s.fontSize * 0.5), color: '#64748b', lineHeight: 1.5 }}>
                           {parsed.contacts.map((c, i) => (
                             <div key={i}>{c}</div>
                           ))}
                         </div>
                       )}
                     </div>
-
-                    {/* Right: Photo */}
                     {hasPhoto && (
-                      <div style={{ flexShrink: 0, marginLeft: 24 }}>
+                      <div style={{ flexShrink: 0, marginLeft: 20 }}>
                         <img
                           src={photo}
                           alt="证件照"
-                          style={{ width: 95, height: 127, objectFit: 'cover', borderRadius: 4, border: '1px solid #e5e7eb' }}
+                          style={{ width: 76, height: 102, objectFit: 'cover', borderRadius: 4, border: '1px solid #e5e7eb' }}
                         />
                       </div>
                     )}
@@ -229,24 +203,24 @@ export default function ResumePreview({ pagePadding }: { pagePadding?: number })
               {/* Other sections */}
               {mod.type !== 'header' && (
                 <>
-                  <h2 style={{ fontFamily: font, fontSize: s.fontSize + 3, fontWeight: 700, color: s.color, marginBottom: 8, lineHeight: s.lineHeight }}>
+                  <h2 style={{ fontFamily: font, fontSize: s.titleFontSize ?? s.fontSize + 3, fontWeight: 700, color: s.color, marginBottom: Math.max(0, Math.round(isp * 0.5)), lineHeight: s.lineHeight }}>
                     {mod.title}
                   </h2>
-                  <div style={{ height: 1, backgroundColor: '#d1d5db', marginBottom: 10 }} />
+                  <div style={{ height: 1, backgroundColor: '#d1d5db', marginBottom: Math.max(2, isp) }} />
 
                   {/* Grid modules */}
                   {gridType && (
-                    <div style={{ display: 'grid', gridTemplateColumns: GRID, alignItems: 'start', gap: '8px 16px', fontFamily: font, fontSize: s.fontSize, color: s.color, marginBottom: 6 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: GRID, alignItems: 'start', gap: `${isp}px 16px`, fontFamily: font, fontSize: s.fontSize, color: s.color }}>
                       {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                       {(mod as any).items?.map((item: any, ei: number) => {
                         const items: any[] = (mod as any).items;
                         const notLast = ei < items.length - 1;
                         return (
                           <div key={item.id} style={{ display: 'contents' }}>
-                            {mod.type === 'education' && <EducationPreview item={item} fontSize={s.fontSize} lineHeight={s.lineHeight} />}
-                            {(mod.type === 'workExperience' || mod.type === 'internshipExperience' || mod.type === 'campusExperience') && <ExperiencePreview item={item} fontSize={s.fontSize} lineHeight={s.lineHeight} />}
-                            {mod.type === 'projectExperience' && <ProjectPreview item={item} fontSize={s.fontSize} lineHeight={s.lineHeight} />}
-                            {notLast && <div style={{ gridColumn: '1 / -1', height: 10 }} />}
+                            {mod.type === 'education' && <EducationPreview item={item} fontSize={s.fontSize} lineHeight={s.lineHeight} gap={Math.max(2, isp)} />}
+                            {(mod.type === 'workExperience' || mod.type === 'internshipExperience' || mod.type === 'campusExperience') && <ExperiencePreview item={item} fontSize={s.fontSize} lineHeight={s.lineHeight} gap={Math.max(2, isp)} />}
+                            {mod.type === 'projectExperience' && <ProjectPreview item={item} fontSize={s.fontSize} lineHeight={s.lineHeight} gap={Math.max(2, isp)} />}
+                            {notLast && <div style={{ gridColumn: '1 / -1', height: isp }} />}
                           </div>
                         );
                       })}
@@ -255,11 +229,11 @@ export default function ResumePreview({ pagePadding }: { pagePadding?: number })
 
                   {/* Skills / certifications / languages */}
                   {(mod.type === 'skills' || mod.type === 'certifications' || mod.type === 'languages') && (
-                    <div style={{ fontSize: s.fontSize, lineHeight: s.lineHeight, color: '#0f172a', display: 'flex', flexWrap: 'wrap', gap: '4px 16px' }}>
-                      {(mod as any).items?.map((s: any) => (
-                        <div key={s.id} style={{ display: 'flex', gap: 6, alignItems: 'baseline' }}>
+                    <div style={{ fontSize: s.fontSize, lineHeight: s.lineHeight, color: '#0f172a', display: 'flex', flexWrap: 'wrap', gap: `${isp}px 16px` }}>
+                      {(mod as any).items?.map((sk: any) => (
+                        <div key={sk.id} style={{ display: 'flex', gap: Math.max(2, isp), alignItems: 'baseline' }}>
                           <span style={{ width: 4, height: 4, borderRadius: '50%', backgroundColor: '#0f172a', flexShrink: 0, marginTop: '0.55em' }} />
-                          <span>{s.name}</span>
+                          <span>{sk.name}</span>
                         </div>
                       ))}
                     </div>
@@ -267,18 +241,20 @@ export default function ResumePreview({ pagePadding }: { pagePadding?: number })
 
                   {/* Custom */}
                   {mod.type === 'custom' && (
-                    <div style={{ fontFamily: font, fontSize: s.fontSize, lineHeight: s.lineHeight, color: s.color, whiteSpace: 'pre-wrap', marginBottom: 8 }}>
+                    <div style={{ fontFamily: font, fontSize: s.fontSize, lineHeight: s.lineHeight, color: s.color, whiteSpace: 'pre-wrap' }}>
                       {(mod as any).content}
                     </div>
                   )}
                 </>
               )}
 
-              {!isLast && <div style={{ marginTop: s.paddingBottom + s.paddingTop || 18 }} />}
+              {/* Module gap: controlled by paddingTop + paddingBottom */}
+              {!isLast && (
+                <div style={{ height: (s.paddingBottom || 0) + (visible[mi + 1].styles.paddingTop || 0) || 0 }} />
+              )}
             </div>
           );
         })}
-        </div>
       </div>
     </div>
   );

@@ -44,12 +44,33 @@ export default function ComparisonResult({ data }: { data: ComparisonResultType 
   const router = useRouter();
   const [sendingToBuilder, setSendingToBuilder] = useState(false);
 
-  function handleSendToBuilder() {
+  async function handleSendToBuilder() {
     const optimizedText = data.comparisons.map((c) => c.optimizedText).join("\n\n");
     if (!optimizedText.trim()) return;
 
     setSendingToBuilder(true);
-    localStorage.setItem("resume-builder-import", optimizedText.trim());
+
+    try {
+      // Parse optimized text into modules BEFORE navigating (eliminates second wait on builder)
+      const res = await fetch("/api/parse-resume", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rawText: optimizedText.trim() }),
+      });
+      const json = await res.json();
+
+      if (json.success && json.modules?.length > 0) {
+        // Pre-parsed modules — builder loads instantly
+        sessionStorage.setItem("resume-builder-modules", JSON.stringify(json.modules));
+      } else {
+        // Fallback: raw text — builder will parse on mount
+        localStorage.setItem("resume-builder-import", optimizedText.trim());
+      }
+    } catch {
+      // Fallback on error
+      localStorage.setItem("resume-builder-import", optimizedText.trim());
+    }
+
     router.push("/builder");
   }
 

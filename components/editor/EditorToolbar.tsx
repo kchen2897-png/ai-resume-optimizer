@@ -1,11 +1,13 @@
 'use client';
 
-import { Undo2, Redo2, Eye, EyeOff, Sparkles, Layout } from 'lucide-react';
+import { Undo2, Redo2, Eye, EyeOff, Sparkles, Layout, AlignJustify } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useEditor } from '@/contexts/EditorContext';
 import { serializeModulesToText } from '@/lib/resume-serializer';
 import AddBlockMenu from './AddBlockMenu';
 import ExportMenu from './ExportMenu';
+import LineSpacingControl from './LineSpacingControl';
+import SpacingPanel from './SpacingPanel';
 
 interface Props {
   targetRole: string;
@@ -37,6 +39,12 @@ export default function EditorToolbar({ targetRole, onTargetRoleChange, loading,
       )}>
         {mode === 'pre-optimize' ? '编辑模式' : '已优化'}
       </span>
+      {state.document.modules.length > 0 && (
+        <span className="inline-flex items-center gap-1 text-xs text-gray-400" title="草稿自动保存中，刷新不丢失">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+          已自动保存
+        </span>
+      )}
       <div className="w-px h-6 bg-gray-200" />
       <AddBlockMenu />
       <button onClick={undo} disabled={!canUndo} className="flex items-center gap-1 rounded-lg px-2.5 py-2 text-sm text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed" title="撤销">
@@ -64,6 +72,9 @@ export default function EditorToolbar({ targetRole, onTargetRoleChange, loading,
       )}
 
       <div className="flex-1" />
+
+      <LineSpacingControl />
+      <SpacingPanel />
 
       {onAutoLayout && (
         <button

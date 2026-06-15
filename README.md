@@ -1,101 +1,121 @@
-# AI 简历优化器
+# AI 简历工具箱
 
-使用 Claude AI 智能分析和优化你的简历，提升岗位匹配度，获得更多面试机会。
+上传简历 PDF，AI 自动解析、优化、排版，导出专业简历。
 
-## 功能列表
+## 功能
 
-- 智能简历分析：Claude AI 从多维度评估简历质量
-- 综合评分：0-100 分简历综合评分
-- 匹配度分析：岗位匹配度、行业匹配度、经验匹配度
-- 问题诊断：按严重程度（严重/中等/轻微）列出简历问题
-- 优化建议：提供具体可操作的修改建议和示例
-- ATS 关键词：列出必须出现、加分和缺失的关键词
-- 简历重写：输出完整优化后的简历正文
-- 项目经历优化：对比展示优化前后的项目描述
-- 面试亮点：提炼面试中可以强调的亮点
-- 下一步建议：后续改进方向
-- 一键复制：支持复制优化后简历、关键词、项目经历
-- 多种优化强度：保守/标准/强力优化
+- 📤 **PDF 上传解析** — 服务端 PyMuPDF 精准提取文字，AI 自动结构化
+- 📝 **AI 简历优化器** — 逐段对比原文与优化版，ATS 关键词分析，综合评分
+- 🎨 **AI 简历制作器** — 可视化拖拽编辑，A4 实时预览，AI 逐字段润色
+- 📄 **PDF 导出** — 服务端 Puppeteer 渲染，与预览完全一致
+- 💾 **自动保存** — 编辑内容自动持久化，刷新不丢失
 
 ## 技术栈
 
-- **框架**: Next.js 15 (App Router)
-- **语言**: TypeScript
-- **样式**: Tailwind CSS
-- **AI**: Anthropic Claude API (`@anthropic-ai/sdk`)
-- **图标**: Lucide React
-- **工具**: clsx
+| 类别 | 技术 |
+|------|------|
+| 框架 | Next.js 15 (App Router) |
+| 语言 | TypeScript |
+| 样式 | Tailwind CSS |
+| AI | DeepSeek API (`deepseek-chat`) |
+| PDF 提取 | PyMuPDF (fitz) |
+| PDF 导出 | Puppeteer + @sparticuz/chromium-min |
+| 拖拽 | @dnd-kit |
 
-## 本地运行步骤
+## 本地运行
 
-### 1. 克隆项目
-
-```bash
-cd ai-resume-optimizer
-```
-
-### 2. 安装依赖
+### 1. 安装依赖
 
 ```bash
 npm install
 ```
 
-### 3. 配置环境变量
+### 2. 安装 PyMuPDF（PDF 文字提取）
 
-复制 `.env.example` 为 `.env.local`：
+```bash
+pip install PyMuPDF
+```
+
+### 3. 配置环境变量
 
 ```bash
 cp .env.example .env.local
 ```
 
-编辑 `.env.local`，填入你的 API Key：
+编辑 `.env.local`：
 
 ```
-ANTHROPIC_API_KEY=sk-ant-xxxxxxxxxxxxx
-ANTHROPIC_MODEL=claude-3-5-haiku-latest
+DEEPSEEK_API_KEY=sk-xxxxxxxx
+DEEPSEEK_MODEL=deepseek-chat
 ```
 
-### 4. 启动开发服务器
+### 4. 启动
 
 ```bash
 npm run dev
 ```
 
-访问 [http://localhost:3000](http://localhost:3000)
+访问 http://localhost:3000
 
-## 如何配置 ANTHROPIC_API_KEY
+## 项目结构
 
-1. 访问 [Anthropic Console](https://console.anthropic.com/) 注册账号
-2. 在 API Keys 页面创建新的 API Key
-3. 将 API Key 复制到 `.env.local` 中的 `ANTHROPIC_API_KEY` 字段
+```
+├── app/
+│   ├── page.tsx                          # 首页（PDF 上传入口）
+│   ├── layout.tsx                        # 全局布局 + 导航
+│   ├── optimizer/
+│   │   └── page.tsx                      # AI 简历优化器
+│   ├── builder/
+│   │   └── page.tsx                      # AI 简历制作器
+│   └── api/
+│       ├── upload-resume/                # PDF 上传 + 解析
+│       ├── parse-resume/                 # 文本 → 结构化模块
+│       ├── optimizer/
+│       │   ├── optimize/                 # AI 逐段优化
+│       │   └── optimize-and-parse/       # 优化 + 解析合并
+│       └── builder/
+│           ├── polish/                   # AI 单字段润色
+│           ├── auto-layout/              # AI 排版适配
+│           └── export-pdf/               # Puppeteer PDF 导出
+├── components/
+│   ├── LandingUpload.tsx                 # 首页 PDF 上传区
+│   ├── NavHeader.tsx                     # 全局导航栏
+│   ├── editor/                           # 制作器组件
+│   │   ├── VisualEditor.tsx              # 主控布局
+│   │   ├── ResumePreview.tsx             # A4 实时预览
+│   │   ├── EditorToolbar.tsx             # 工具栏
+│   │   ├── BlockStyleBar.tsx             # 样式工具栏
+│   │   ├── SpacingPanel.tsx              # 间距控制面板
+│   │   ├── LineSpacingControl.tsx        # 行间距控制
+│   │   └── ExportMenu.tsx                # 导出菜单
+│   ├── optimizer/                        # 优化器组件
+│   └── builder/                          # 制作器辅助组件
+├── contexts/
+│   └── EditorContext.tsx                 # 编辑器状态管理（undo/redo/auto-save）
+├── lib/
+│   ├── editor-types.ts                   # 编辑器类型定义
+│   ├── deepseek.ts                       # DeepSeek API 调用
+│   ├── ai-parser.ts                      # AI 简历解析
+│   ├── server-pdf-extractor.ts           # PyMuPDF 服务端提取
+│   ├── extract_pdf.py                    # Python 提取脚本
+│   ├── header-parser.ts                  # 头部信息解析
+│   ├── resume-pdf-html.ts               # PDF HTML 模板
+│   ├── resume-serializer.ts             # 模块序列化
+│   └── prompts/                          # AI 提示词
+└── public/
+```
 
-## 如何部署到 Vercel
+## 部署到 Vercel
 
-### 一键部署
+1. Fork 本仓库
+2. 在 Vercel 导入项目
+3. 添加环境变量：
+   - `DEEPSEEK_API_KEY` — DeepSeek API Key
+   - `DEEPSEEK_MODEL` — `deepseek-chat`
+   - `CHROMIUM_REMOTE_EXEC_PATH` — `https://github.com/Sparticuz/chromium/releases/download/v141.0.0/chromium-v141.0.0-pack.tar.br`
+4. 升级到 Vercel Pro（Hobby 10s 超时不够 PDF 生成）
+5. 部署
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/yourusername/ai-resume-optimizer)
+## License
 
-### 手动部署
-
-1. 将代码推送到 GitHub 仓库
-2. 在 [Vercel](https://vercel.com) 中导入该仓库
-3. 在 Vercel 项目设置中添加环境变量：
-   - `ANTHROPIC_API_KEY`: 你的 Anthropic API Key
-   - `ANTHROPIC_MODEL`: `claude-3-5-haiku-latest`（可选）
-4. 部署
-
-## 隐私说明
-
-本项目默认不存储用户简历数据。所有 AI 分析请求直接转发至 Anthropic API，不经过任何第三方服务器存储。
-
-## 后续商业化扩展方向
-
-- 用户登录：支持账号体系，保存用户优化历史
-- 历史记录：查看过往优化记录和简历版本
-- PDF 导出：将优化后的简历导出为 PDF
-- Word 导出：将优化后的简历导出为 Word 文档
-- 岗位 JD 匹配：上传 JD 进行精准匹配优化
-- 付费套餐：免费版（基础优化）、Pro 版（深度优化 + 多次使用）
-- 简历模板：提供多种简历排版模板
-- 多语言：支持英文简历优化
-- 面试题库：根据优化结果推荐面试准备题目
+MIT

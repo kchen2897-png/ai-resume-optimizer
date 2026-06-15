@@ -1,46 +1,11 @@
 import type { ResumeModule } from './editor-types';
 import { isGridModule } from './editor-types';
+import { parseHeader, esc, escAttr } from './header-parser';
 
 /* ── Constants ── */
 const A4_W_MM = 210;
 const A4_H_MM = 297;
 const PAD_MM = 15; // must match preview padding
-
-/* ── Header parser — matches ResumePreview.parseHeaderPreview ── */
-function parseHeader(content: string): { name: string; contacts: string[] } {
-  if (!content.trim()) return { name: '', contacts: [] };
-  const lines = content.split('\n').map(l => l.trim()).filter(Boolean);
-  let name = '';
-  const rawContacts: string[] = [];
-  const labelRe = /(电话|手机|邮箱|城市|地点|Email|Tel|Phone|Base|毕业院校|学历|民族|政治|出生)/;
-
-  for (const line of lines) {
-    const hasLabel = labelRe.test(line);
-    const isContact = hasLabel || line.includes('@') || /^1\d{10}$/.test(line) || /\+?\d[\d\s-]{6,}/.test(line);
-    if (!name && !isContact && line.length <= 20) {
-      name = line;
-    } else if (isContact) {
-      rawContacts.push(line);
-    } else if (!name) {
-      name = line;
-    } else {
-      rawContacts.push(line);
-    }
-  }
-
-  // Remove name prefix from contact lines if duplicated
-  const contacts = name
-    ? rawContacts.map(c => {
-        if (c === name) return '';
-        if (c.startsWith(name + ' ') || c.startsWith(name + '|')) {
-          return c.slice(name.length).replace(/^\s*\|\s*/, '');
-        }
-        return c;
-      }).filter(Boolean)
-    : rawContacts;
-
-  return { name, contacts };
-}
 
 /* ── Date format ── */
 function fmtDate(item: Record<string, unknown>): string {
@@ -79,7 +44,7 @@ function renderModule(mod: ResumeModule): string {
   const fs = s.fontSize || 13; // base font size (body)
   const lh = s.lineHeight || 1.55;
   const color = s.color || '#0f172a';
-  const font = `${s.fontFamily}, -apple-system, BlinkMacSystemFont, "Microsoft YaHei", "Segoe UI", sans-serif`;
+  const font = `"${s.fontFamily}", "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Microsoft YaHei", "Segoe UI", sans-serif`;
 
   /* ── HEADER ── */
   if (mod.type === 'header') {
@@ -92,7 +57,7 @@ function renderModule(mod: ResumeModule): string {
       html += `<h1 class="h-name" style="font-family:${font};font-size:${fs}px;color:${color};line-height:${lh};">${esc(parsed.name)}</h1>`;
     }
     if (parsed.contacts.length) {
-      html += `<div class="h-contact" style="font-size:${Math.round(fs * 0.55)}px;">`;
+      html += `<div class="h-contact" style="font-size:${Math.round(fs * 0.5)}px;">`;
       for (const c of parsed.contacts) {
         html += `<div>${esc(c)}</div>`;
       }
@@ -110,14 +75,19 @@ function renderModule(mod: ResumeModule): string {
   }
 
   /* ── SECTION TITLE ── */
+  const isp = s.itemSpacing ?? 8;
+  const titleMb = Math.max(0, Math.round(isp * 0.5));
+  const hrMb = Math.max(2, isp);
   let html = '';
-  html += `<h2 class="s-title" style="font-family:${font};font-size:${fs + 3}px;font-weight:700;color:${color};margin-bottom:8px;">${esc(mod.title || '')}</h2>`;
-  html += '<div class="s-hr"></div>';
+  const titleFs = s.titleFontSize ?? fs + 3;
+  html += `<h2 class="s-title" style="font-family:${font};font-size:${titleFs}px;font-weight:700;color:${color};margin-bottom:${titleMb}px;">${esc(mod.title || '')}</h2>`;
+  html += `<div class="s-hr" style="margin-bottom:${hrMb}px;"></div>`;
 
   /* ── GRID MODULES ── */
   if (isGridModule(mod.type)) {
     const items: Record<string, unknown>[] = (mod as unknown as { items: Record<string, unknown>[] }).items || [];
-    html += `<div class="grid" style="font-size:${fs}px;line-height:${lh};">`;
+    const isp = s.itemSpacing ?? 8;
+    html += `<div class="grid" style="font-size:${fs}px;line-height:${lh};row-gap:${isp}px;">`;
 
     for (let ei = 0; ei < items.length; ei++) {
       const it = items[ei];
@@ -160,7 +130,7 @@ function renderModule(mod: ResumeModule): string {
       }
 
       if (ei < items.length - 1) {
-        html += '<div class="g-gap"></div>';
+        html += `<div style="grid-column:1/-1;height:${isp}px;"></div>`;
       }
     }
     html += '</div>';
@@ -201,7 +171,7 @@ export function buildA4Html(modules: ResumeModule[]): string {
 
     // Spacer between sections using module's own padding
     if (mi < visible.length - 1) {
-      const gap = (mod.styles.paddingBottom || 0) + (visible[mi + 1].styles.paddingTop || 0) || 18;
+      const gap = (mod.styles.paddingBottom || 0) + (visible[mi + 1].styles.paddingTop || 0);
       bodyParts.push(`<div style="height:${gap}px;"></div>`);
     }
   }
@@ -212,10 +182,13 @@ export function buildA4Html(modules: ResumeModule[]): string {
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
   *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
   body{
-    font-family:-apple-system,BlinkMacSystemFont,"Microsoft YaHei","Segoe UI",sans-serif;
+    font-family:"Inter","Noto Sans SC",-apple-system,BlinkMacSystemFont,"Microsoft YaHei","Segoe UI",sans-serif;
     color:#1f2937;
     background:#fff;
     -webkit-print-color-adjust:exact;
@@ -237,30 +210,27 @@ export function buildA4Html(modules: ResumeModule[]): string {
   }
 
   /* ── Header ── */
-  .header-row{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px}
+  .header-row{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
   .header-left{flex:1}
-  .h-name{font-weight:700;line-height:1.3;margin-bottom:6px}
-  .h-contact{color:#64748b;line-height:1.7}
-  .header-photo{flex-shrink:0;margin-left:24px}
-  .photo-img{width:95px;height:127px;object-fit:cover;border-radius:4px;border:1px solid #e5e7eb}
+  .h-name{font-weight:700;line-height:1.3;margin-bottom:2px}
+  .h-contact{color:#64748b;line-height:1.5}
+  .header-photo{flex-shrink:0;margin-left:20px}
+  .photo-img{width:76px;height:102px;object-fit:cover;border-radius:4px;border:1px solid #e5e7eb}
 
   /* ── Section titles ── */
   .s-title{line-height:1.3}
-  .s-hr{height:1px;background:#d1d5db;margin-bottom:10px}
+  .s-hr{height:1px;background:#d1d5db}
 
   /* ── Grid table ── */
   .grid{
     display:grid;
     grid-template-columns:2.2fr 1.2fr 1fr 1.4fr;
     align-items:start;
-    gap:8px 16px;
-    margin-bottom:6px;
   }
   .g1{font-weight:600;min-width:0;overflow-wrap:break-word;line-height:1.4}
   .g2{text-align:center;min-width:0;overflow-wrap:break-word;line-height:1.4}
   .g3{text-align:center;min-width:0;overflow-wrap:break-word;line-height:1.4}
   .g4{text-align:right;white-space:nowrap;line-height:1.4}
-  .g-gap{grid-column:1/-1;height:10px}
   .ge{
     grid-column:1/-1;
     display:flex;
@@ -294,10 +264,4 @@ ${body}
 }
 
 /* ── Helpers ── */
-function esc(t: string): string {
-  return t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
 
-function escAttr(t: string): string {
-  return t.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
-}

@@ -19,14 +19,18 @@ export function buildPolishSystemPrompt(): string {
 }
 
 export function buildPolishUserPrompt(params: PolishRequest): string {
-  const typeLabel: Record<string, string> = {
-    bullet: "工作/项目描述要点",
-    description: "描述段落",
-    content: "模块内容",
-    title: "模块标题",
+  const fieldGuides: Record<string, string> = {
+    bullet:
+      "请将以下工作/项目描述要点改写为STAR格式（情境→任务→行动→结果），使用有力的动作动词开头，尽可能量化成果：",
+    description:
+      "请将以下描述段落优化得更专业、更精炼，去掉空泛和冗余表达，突出关键信息：",
+    content:
+      "请优化以下模块内容，使其结构清晰、表达有力，突出核心竞争力：",
+    title:
+      "请为以下内容生成一个简洁专业、信息明确的标题：",
   };
 
-  let prompt = `请润色以下${typeLabel[params.fieldType] || "文本"}：\n\n${params.rawText}`;
+  let prompt = `${fieldGuides[params.fieldType] || "请润色以下文本："}\n\n${params.rawText}`;
 
   if (params.context) {
     prompt += `\n\n上下文：${params.context}`;
