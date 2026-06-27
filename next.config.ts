@@ -9,7 +9,10 @@ const nextConfig: NextConfig = {
     "@napi-rs/canvas",
   ],
   outputFileTracingIncludes: {
-    "/api/upload-resume": ["node_modules/@napi-rs/canvas*/**/*"],
+    "/api/upload-resume": [
+      "node_modules/@napi-rs/canvas*/**/*",
+      "node_modules/pdf-parse/dist/pdf-parse/cjs/pdf.worker.mjs",
+    ],
   },
 };
 
