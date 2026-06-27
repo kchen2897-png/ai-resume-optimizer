@@ -10,10 +10,12 @@
  */
 
 import { spawn } from "child_process";
-import path from "path";
-import fs from "fs/promises";
+import { existsSync } from "fs";
+import { mkdtemp, rm, writeFile } from "fs/promises";
 import os from "os";
-import { writeFile } from "fs/promises";
+import path from "path";
+
+const PYTHON_TIMEOUT_MS = 30_000;
 
 export interface ExtractionResult {
   success: boolean;
@@ -21,6 +23,7 @@ export interface ExtractionResult {
   charCount?: number;
   pageCount?: number;
   method: "pymupdf" | "pdfjs-fallback";
+  fallbackReason?: string;
   error?: string;
 }
 
@@ -32,7 +35,6 @@ export async function extractPDFTextServer(
   pdfBuffer: Buffer,
   fileName?: string
 ): Promise<ExtractionResult> {
-  // Try PyMuPDF first
   const pymupdfResult = await extractWithPyMuPDF(pdfBuffer, fileName);
   if (pymupdfResult.success && pymupdfResult.text?.trim()) {
     return pymupdfResult;
@@ -42,18 +44,24 @@ export async function extractPDFTextServer(
     "PyMuPDF extraction failed or returned empty text, falling back to pdf-parse:",
     pymupdfResult.error
   );
-  return extractWithPdfParse(pdfBuffer);
+  const fallbackResult = await extractWithPdfParse(pdfBuffer);
+  return {
+    ...fallbackResult,
+    fallbackReason: pymupdfResult.error,
+  };
 }
 
 async function extractWithPyMuPDF(
   pdfBuffer: Buffer,
   fileName?: string
 ): Promise<ExtractionResult> {
-  const tmpDir = os.tmpdir();
-  const safeName = fileName?.replace(/[^a-zA-Z0-9_.-]/g, "_") || "resume.pdf";
-  const tmpPath = path.join(tmpDir, `resume-${Date.now()}-${safeName}`);
+  let tmpDir: string | undefined;
 
   try {
+    tmpDir = await mkdtemp(path.join(os.tmpdir(), "resume-upload-"));
+    const safeName = sanitizePdfFileName(fileName);
+    const tmpPath = path.join(tmpDir, safeName);
+
     await writeFile(tmpPath, pdfBuffer);
 
     const pythonPath = process.env.PYTHON_PATH || findPython();
@@ -76,13 +84,20 @@ async function extractWithPyMuPDF(
       error: err instanceof Error ? err.message : "PyMuPDF extraction failed",
     };
   } finally {
-    // Clean up temp file
-    try {
-      await fs.unlink(tmpPath);
-    } catch {
-      // Ignore cleanup errors
+    if (tmpDir) {
+      await rm(tmpDir, { recursive: true, force: true }).catch(() => undefined);
     }
   }
+}
+
+function sanitizePdfFileName(fileName?: string): string {
+  const rawName = fileName?.trim() || "resume.pdf";
+  const safeName = rawName
+    .replace(/[/\\?%*:|"<>]/g, "_")
+    .replace(/[^\w.-]/g, "_")
+    .slice(0, 120);
+
+  return safeName.toLowerCase().endsWith(".pdf") ? safeName : `${safeName}.pdf`;
 }
 
 function findPython(): string {
@@ -96,8 +111,7 @@ function findPython(): string {
       "C:\\Python312\\python.exe",
       "python",  // fallback to PATH
     ];
-    // Return the most likely candidate; child_process will error if not found
-    return candidates[0];
+    return candidates.find((candidate) => candidate === "python" || existsSync(candidate)) || "python";
   }
   return "python3";
 }
@@ -108,13 +122,28 @@ async function runPythonScript(
   pdfPath: string
 ): Promise<{ success: boolean; text?: string; error?: string; charCount?: number; pageCount?: number }> {
   return new Promise((resolve) => {
+    let settled = false;
     const proc = spawn(pythonPath, [scriptPath, pdfPath], {
       stdio: ["ignore", "pipe", "pipe"],
-      timeout: 30000,
     });
 
     let stdout = "";
     let stderr = "";
+
+    const finish = (result: { success: boolean; text?: string; error?: string; charCount?: number; pageCount?: number }) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      resolve(result);
+    };
+
+    const timeout = setTimeout(() => {
+      proc.kill("SIGTERM");
+      finish({
+        success: false,
+        error: `PyMuPDF timed out after ${PYTHON_TIMEOUT_MS}ms`,
+      });
+    }, PYTHON_TIMEOUT_MS);
 
     proc.stdout.on("data", (data: Buffer) => {
       stdout += data.toString("utf-8");
@@ -126,7 +155,7 @@ async function runPythonScript(
 
     proc.on("close", (code) => {
       if (code !== 0) {
-        resolve({
+        finish({
           success: false,
           error: `Python exited with code ${code}: ${stderr}`,
         });
@@ -135,9 +164,9 @@ async function runPythonScript(
 
       try {
         const result = JSON.parse(stdout.trim());
-        resolve(result);
+        finish(result);
       } catch {
-        resolve({
+        finish({
           success: false,
           error: `Failed to parse Python output: ${stdout.slice(0, 200)}`,
         });
@@ -145,7 +174,7 @@ async function runPythonScript(
     });
 
     proc.on("error", (err) => {
-      resolve({
+      finish({
         success: false,
         error: `Failed to start Python: ${err.message}`,
       });
@@ -161,17 +190,20 @@ async function runPythonScript(
 async function extractWithPdfParse(
   pdfBuffer: Buffer
 ): Promise<ExtractionResult> {
+  let parser: import("pdf-parse").PDFParse | undefined;
+
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const pdfParse = require('pdf-parse');
-    const data = await pdfParse(pdfBuffer);
+    const { PDFParse } = require("pdf-parse") as typeof import("pdf-parse");
+    parser = new PDFParse({ data: new Uint8Array(pdfBuffer) });
+    const data = await parser.getText({ pageJoiner: "" });
 
     if (data.text?.trim()) {
       return {
         success: true,
         text: data.text,
         charCount: data.text.length,
-        pageCount: data.numpages,
+        pageCount: data.total,
         method: "pdfjs-fallback",
       };
     }
@@ -187,5 +219,7 @@ async function extractWithPdfParse(
       error:
         err instanceof Error ? err.message : "pdf-parse extraction failed",
     };
+  } finally {
+    await parser?.destroy().catch(() => undefined);
   }
 }

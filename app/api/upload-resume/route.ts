@@ -1,39 +1,81 @@
 import { NextRequest, NextResponse } from "next/server";
+import { randomUUID } from "crypto";
 import { extractPDFTextServer } from "@/lib/server-pdf-extractor";
 import { parseResumeWithAI } from "@/lib/ai-parser";
 
 export const maxDuration = 60; // PDF extraction + AI parsing needs time
 
+const MAX_UPLOAD_SIZE = 10 * 1024 * 1024;
+
+type UploadErrorCode =
+  | "MISSING_FILE"
+  | "INVALID_FILE_TYPE"
+  | "FILE_TOO_LARGE"
+  | "TEXT_EXTRACTION_FAILED"
+  | "AI_PARSE_FAILED"
+  | "INTERNAL_ERROR";
+
+type UploadStage = "validation" | "extract" | "ai-parse" | "unknown";
+
+function uploadError(
+  status: number,
+  code: UploadErrorCode,
+  stage: UploadStage,
+  message: string,
+  requestId: string,
+  extras: Record<string, unknown> = {}
+) {
+  return NextResponse.json(
+    {
+      success: false,
+      code,
+      stage,
+      error: message,
+      requestId,
+      ...extras,
+    },
+    { status }
+  );
+}
+
 export async function POST(request: NextRequest) {
+  const requestId = randomUUID();
+
   try {
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
 
     if (!file) {
-      return NextResponse.json(
-        { success: false, error: "请上传简历文件" },
-        { status: 400 }
+      return uploadError(
+        400,
+        "MISSING_FILE",
+        "validation",
+        "请上传简历 PDF 文件",
+        requestId
       );
     }
 
     // Validate file type
     const fileName = file.name.toLowerCase();
     if (!fileName.endsWith(".pdf")) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: `不支持 .${fileName.split(".").pop()} 格式，目前仅支持 PDF 文件`,
-        },
-        { status: 400 }
+      return uploadError(
+        400,
+        "INVALID_FILE_TYPE",
+        "validation",
+        `不支持 .${fileName.split(".").pop()} 格式，目前仅支持 PDF 文件`,
+        requestId
       );
     }
 
     // Validate file size (max 10MB)
-    const MAX_SIZE = 10 * 1024 * 1024;
-    if (file.size > MAX_SIZE) {
-      return NextResponse.json(
-        { success: false, error: "文件大小超过 10MB 限制" },
-        { status: 400 }
+    if (file.size > MAX_UPLOAD_SIZE) {
+      return uploadError(
+        400,
+        "FILE_TOO_LARGE",
+        "validation",
+        "文件大小超过 10MB 限制",
+        requestId,
+        { maxSize: MAX_UPLOAD_SIZE }
       );
     }
 
@@ -42,13 +84,30 @@ export async function POST(request: NextRequest) {
     const extraction = await extractPDFTextServer(buffer, file.name);
 
     if (!extraction.success || !extraction.text?.trim()) {
-      return NextResponse.json(
+      console.warn("Upload PDF text extraction failed", {
+        requestId,
+        fileName: file.name,
+        method: extraction.method,
+        error: extraction.error,
+        fallbackReason: extraction.fallbackReason,
+      });
+
+      return uploadError(
+        422,
+        "TEXT_EXTRACTION_FAILED",
+        "extract",
+        "未能从 PDF 中提取文字。文件可能是扫描图片，建议换成可复制文字的 PDF，或进入制作器手动粘贴内容。",
+        requestId,
         {
-          success: false,
-          error: extraction.error || "未能从 PDF 中提取文字，文件可能为扫描图片",
           extractionMethod: extraction.method,
-        },
-        { status: 422 }
+          debug:
+            process.env.NODE_ENV === "production"
+              ? undefined
+              : {
+                  error: extraction.error,
+                  fallbackReason: extraction.fallbackReason,
+                },
+        }
       );
     }
 
@@ -58,11 +117,19 @@ export async function POST(request: NextRequest) {
     const parseResult = await parseResumeWithAI(rawText);
 
     if (!parseResult.success) {
-      // Return raw text even if AI parsing fails — client can show it
+      console.warn("Upload AI parse failed; returning raw text fallback", {
+        requestId,
+        fileName: file.name,
+        error: parseResult.error,
+      });
+
       return NextResponse.json(
         {
           success: false,
+          code: "AI_PARSE_FAILED",
+          stage: "ai-parse",
           error: parseResult.error,
+          requestId,
           rawText,
           extractionMethod: extraction.method,
           charCount: extraction.charCount,
@@ -74,17 +141,21 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
+      requestId,
       modules: parseResult.modules,
       rawText,
       extractionMethod: extraction.method,
       charCount: extraction.charCount,
       pageCount: extraction.pageCount,
     });
-  } catch (err: any) {
-    console.error("Upload resume error:", err);
-    return NextResponse.json(
-      { success: false, error: err.message || "文件处理失败" },
-      { status: 500 }
+  } catch (err) {
+    console.error("Upload resume unexpected error", { requestId, err });
+    return uploadError(
+      500,
+      "INTERNAL_ERROR",
+      "unknown",
+      "上传服务暂时不可用，请稍后重试。若问题持续，请记录错误编号联系维护者。",
+      requestId
     );
   }
 }

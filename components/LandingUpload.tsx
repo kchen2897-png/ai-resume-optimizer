@@ -9,6 +9,11 @@ type Status = "idle" | "uploading" | "parsing" | "done" | "error";
 
 const MAX_SIZE = 10 * 1024 * 1024;
 
+function formatUploadError(json: any) {
+  const message = json?.error || "文件处理失败";
+  return json?.requestId ? `${message}（错误编号：${json.requestId.slice(0, 8)}）` : message;
+}
+
 export default function LandingUpload() {
   const router = useRouter();
   const [status, setStatus] = useState<Status>("idle");
@@ -77,7 +82,7 @@ export default function LandingUpload() {
       const json = await res.json();
 
       if (!json.success && !json.rawText) {
-        throw new Error(json.error || "文件处理失败");
+        throw new Error(formatUploadError(json));
       }
 
       // Even if AI parsing failed, we still have raw text — try parsing client-side
@@ -100,7 +105,7 @@ export default function LandingUpload() {
           router.push("/builder");
         }, 500);
       } else {
-        throw new Error(json.error || "文件处理失败");
+        throw new Error(formatUploadError(json));
       }
     } catch (err) {
       setStatus("error");

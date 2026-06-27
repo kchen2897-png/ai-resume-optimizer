@@ -57,6 +57,22 @@ npm run dev
 
 访问 http://localhost:3000
 
+### 5. 上传链路自检
+
+启动本地服务后，另开一个终端运行：
+
+```bash
+npm run check:upload
+```
+
+脚本会生成一份测试 PDF 并请求 `/api/upload-resume`。只要 PDF 上传和文字提取正常，即使没有配置 AI Key，也会通过并返回 `rawText`。
+
+检查线上环境：
+
+```bash
+npm run check:upload -- --url=https://你的域名/api/upload-resume
+```
+
 ## 项目结构
 
 ```
@@ -115,6 +131,14 @@ npm run dev
    - `CHROMIUM_REMOTE_EXEC_PATH` — `https://github.com/Sparticuz/chromium/releases/download/v141.0.0/chromium-v141.0.0-pack.tar.br`
 4. 升级到 Vercel Pro（Hobby 10s 超时不够 PDF 生成）
 5. 部署
+
+## 稳定性约定
+
+- 使用 Node.js `>=22 <25`，避免 PDF 解析依赖在不支持的运行时上异常。
+- 直接依赖使用精确版本，部署时优先使用 `npm ci`，不要让依赖在重建时自动漂移。
+- `/api/upload-resume` 和 PDF 导出接口都配置了 60 秒执行时间。
+- 上传失败响应包含 `code`、`stage`、`requestId`。用户看到错误编号时，可以用该编号查服务端日志。
+- 部署后先跑 `npm run check:upload -- --url=https://你的域名/api/upload-resume`，确认上传和 PDF 提取链路正常。
 
 ## License
 
