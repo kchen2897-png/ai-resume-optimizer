@@ -8,6 +8,9 @@ const nextConfig: NextConfig = {
     "pdf-parse",
     "@napi-rs/canvas",
   ],
+  outputFileTracingIncludes: {
+    "/api/upload-resume": ["node_modules/@napi-rs/canvas*/**/*"],
+  },
 };
 
 export default nextConfig;
