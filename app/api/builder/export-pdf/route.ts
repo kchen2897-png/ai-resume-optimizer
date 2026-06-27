@@ -97,7 +97,7 @@ async function renderPdf(html: string): Promise<Uint8Array> {
 
   try {
     await page.setContent(html, {
-      waitUntil: 'networkidle0',
+      waitUntil: 'load',
       timeout: 30000,
     });
 
