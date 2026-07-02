@@ -4,7 +4,7 @@ const nextConfig: NextConfig = {
   devIndicators: false,
   serverExternalPackages: [
     "puppeteer-core",
-    "@sparticuz/chromium-min",
+    "@sparticuz/chromium",
     "pdf-parse",
     "@napi-rs/canvas",
   ],

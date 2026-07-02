@@ -54,15 +54,14 @@ async function launchBrowser(): Promise<import('puppeteer-core').Browser> {
   const puppeteer = await import('puppeteer-core');
 
   // ── Production: Vercel / serverless ──
-  const remotePath = process.env.CHROMIUM_REMOTE_EXEC_PATH;
-  if (remotePath) {
-    const chromium = await import('@sparticuz/chromium-min');
-    // @sparticuz/chromium-min >= 130 accepts a URL directly to
-    // executablePath for on-demand download; pass it as-is.
+  const isServerless =
+    process.env.VERCEL === '1' || Boolean(process.env.AWS_LAMBDA_FUNCTION_NAME);
+  if (isServerless) {
+    const chromium = await import('@sparticuz/chromium');
     return puppeteer.default.launch({
       args: [...chromium.default.args, '--no-sandbox', '--disable-gpu'],
       defaultViewport: { width: 794, height: 1123, deviceScaleFactor: 2 },
-      executablePath: await chromium.default.executablePath(remotePath),
+      executablePath: await chromium.default.executablePath(),
       headless: true,
     });
   }
