@@ -1,50 +1,13 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import { EditorProvider, useEditor } from "@/contexts/EditorContext";
 import VisualEditor from "@/components/editor/VisualEditor";
 import FileUploadZone from "@/components/FileUploadZone";
 import LoadingState from "@/components/LoadingState";
-import { DEFAULT_BLOCK_STYLES } from "@/lib/editor-types";
 import type { ResumeModule } from "@/lib/editor-types";
+import { hydrateModules } from "@/lib/resume-module-normalizer";
 import { Plus, Upload } from "lucide-react";
-
-// Local ID generator matching editor-types.ts pattern
-let _nid = 0;
-function nanoid(): string {
-  return `${Date.now().toString(36)}${(_nid++).toString(36)}${Math.random().toString(36).slice(2, 6)}`;
-}
-
-function hydrateModules(raw: any[]): ResumeModule[] {
-  return raw.map((m, i) => {
-    const items = m.items?.map((item: any) => ({
-      ...item,
-      id: item.id || nanoid(),
-      bulletPoints: (item.bulletPoints || []).map((b: any) =>
-        typeof b === 'string' ? b : (b.text || '')
-      ),
-    })) ?? [];
-    const styles = { ...DEFAULT_BLOCK_STYLES };
-    // Compute title font size: 3px larger than body, or keep existing
-    styles.titleFontSize = styles.fontSize + 3;
-    if (m.type === 'header') {
-      styles.fontSize = 18;
-      styles.titleFontSize = 18; // header name IS the title
-      styles.paddingTop = 2;
-      styles.paddingBottom = 6;
-      styles.itemSpacing = 0;
-    }
-    return {
-      ...m,
-      id: m.id || nanoid(),
-      order: i,
-      styles,
-      isCollapsed: false,
-      items: items.length > 0 ? items : undefined,
-    } as ResumeModule;
-  });
-}
 
 function BuilderContent() {
   const [targetRole, setTargetRole] = useState("");
@@ -52,7 +15,6 @@ function BuilderContent() {
   const [importing, setImporting] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const router = useRouter();
 
   const modules = state.document.modules;
   const isEmpty = modules.length === 0 && !importing;

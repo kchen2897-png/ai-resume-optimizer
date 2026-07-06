@@ -93,7 +93,7 @@ export default function EditorToolbar({ targetRole, onTargetRoleChange, loading,
         className="flex items-center gap-1.5 rounded-lg border border-purple-200 bg-purple-50 px-3 py-2 text-sm font-medium text-purple-700 hover:bg-purple-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
       >
         <Sparkles className="h-4 w-4" />
-        全局 AI 建议
+        AI 优化
       </button>
 
       <button onClick={onTogglePreview} className={cn(

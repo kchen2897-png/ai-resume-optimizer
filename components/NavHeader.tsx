@@ -2,13 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Sparkles, Pencil, Home } from "lucide-react";
+import { Home, Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const links = [
   { href: "/", label: "首页", icon: Home },
-  { href: "/optimizer", label: "AI 优化器", icon: Sparkles },
-  { href: "/builder", label: "AI 制作器", icon: Pencil },
+  { href: "/builder", label: "简历工作台", icon: Pencil },
 ];
 
 export default function NavHeader() {
@@ -16,14 +15,17 @@ export default function NavHeader() {
 
   return (
     <header className="sticky top-0 z-20 border-b border-gray-200/60 bg-white/80 backdrop-blur-md">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 h-12">
-        {/* Logo */}
-        <Link href="/" className="flex items-center gap-2 text-sm font-bold text-gray-800 hover:text-brand-600 transition-colors">
-          <span className="flex h-6 w-6 items-center justify-center rounded-md bg-brand-500 text-white text-xs">AI</span>
+      <div className="mx-auto flex h-12 max-w-6xl items-center justify-between px-4">
+        <Link
+          href="/"
+          className="flex items-center gap-2 text-sm font-bold text-gray-800 transition-colors hover:text-brand-600"
+        >
+          <span className="flex h-6 w-6 items-center justify-center rounded-md bg-brand-500 text-xs text-white">
+            AI
+          </span>
           简历工具箱
         </Link>
 
-        {/* Nav links */}
         <nav className="flex items-center gap-1">
           {links.map(({ href, label, icon: Icon }) => {
             const isActive = href === "/" ? pathname === "/" : pathname.startsWith(href);
@@ -35,7 +37,7 @@ export default function NavHeader() {
                   "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
                   isActive
                     ? "bg-brand-50 text-brand-700"
-                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                    : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
                 )}
               >
                 <Icon className="h-3.5 w-3.5" />

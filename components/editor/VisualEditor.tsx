@@ -8,6 +8,7 @@ import EditorCanvas from './EditorCanvas';
 import ResumePreview from './ResumePreview';
 import ErrorMessage from '@/components/ErrorMessage';
 import LoadingState from '@/components/LoadingState';
+import AIWorkbenchPanel from '@/components/builder/AIWorkbenchPanel';
 import { serializeModulesToText } from '@/lib/resume-serializer';
 import type { BlockStyles } from '@/lib/editor-types';
 
@@ -23,8 +24,8 @@ export default function VisualEditor({ targetRole = '', onTargetRoleChange }: Pr
   const [layoutLoading, setLayoutLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(true);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [suggestionText, setSuggestionText] = useState('');
+  const [showOptimizationPanel, setShowOptimizationPanel] = useState(false);
+  const [optimizationText, setOptimizationText] = useState('');
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -87,7 +88,7 @@ export default function VisualEditor({ targetRole = '', onTargetRoleChange }: Pr
           layoutLoading={layoutLoading}
           showPreview={showPreview}
           onTogglePreview={() => setShowPreview(!showPreview)}
-          onGlobalSuggest={(text) => { setSuggestionText(text); setShowSuggestions(true); }}
+          onGlobalSuggest={(text) => { setOptimizationText(text); setShowOptimizationPanel(true); }}
           onAutoLayout={handleAutoLayout}
         />
       </div>
@@ -114,15 +115,21 @@ export default function VisualEditor({ targetRole = '', onTargetRoleChange }: Pr
         )}
       </div>
 
-      {showSuggestions && suggestionText && (
+      {showOptimizationPanel && optimizationText && (
         <div className="fixed inset-0 z-30">
-          <div className="absolute inset-0 bg-black/20" onClick={() => setShowSuggestions(false)} />
-          <AISuggestionsPanel resumeText={suggestionText} targetRole={targetRole} onClose={() => setShowSuggestions(false)} />
+          <div className="absolute inset-0 bg-black/20" onClick={() => setShowOptimizationPanel(false)} />
+          <AIWorkbenchPanel
+            resumeText={optimizationText}
+            targetRole={targetRole}
+            onTargetRoleChange={onTargetRoleChange}
+            onClose={() => setShowOptimizationPanel(false)}
+            onApplyModules={(nextModules) => {
+              dispatch({ type: 'LOAD_MODULES', modules: nextModules, mode: 'post-optimize' });
+              setOptimizationText(serializeModulesToText(nextModules));
+            }}
+          />
         </div>
       )}
     </div>
   );
 }
-
-// Inline import to avoid circular deps
-import AISuggestionsPanel from '@/components/builder/AISuggestionsPanel';
