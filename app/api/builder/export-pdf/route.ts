@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { buildA4Html } from '@/lib/resume-pdf-html';
 import type { ResumeModule } from '@/lib/editor-types';
 
-export const maxDuration = 60; // Vercel Pro / Fluid Compute
+export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
   try {

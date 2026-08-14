@@ -3,6 +3,8 @@ import type { OptimizeRequest } from '@/lib/types';
 import { callDeepSeekOptimize } from '@/lib/deepseek';
 import { validateRequest } from '@/lib/validators';
 
+export const maxDuration = 60;
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json() as OptimizeRequest;

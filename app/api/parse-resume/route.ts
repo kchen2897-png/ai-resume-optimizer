@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { parseResumeWithAI } from '@/lib/ai-parser';
 
+export const maxDuration = 60;
+
 export async function POST(request: NextRequest) {
   try {
     const { rawText } = await request.json();

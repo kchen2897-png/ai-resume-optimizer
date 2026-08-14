@@ -1,10 +1,4 @@
 {
-  "functions": {
-    "app/api/upload-resume/route.ts": {
-      "maxDuration": 60
-    },
-    "app/api/builder/export-pdf/route.ts": {
-      "maxDuration": 60
-    }
-  }
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "fluid": true
 }
