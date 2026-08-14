@@ -13,6 +13,10 @@ const nextConfig: NextConfig = {
       "node_modules/@napi-rs/canvas*/**/*",
       "node_modules/pdf-parse/dist/pdf-parse/cjs/pdf.worker.mjs",
     ],
+    "/api/builder/export-pdf": [
+      "node_modules/@sparticuz/chromium/**/*",
+      "node_modules/puppeteer-core/**/*",
+    ],
   },
 };
 

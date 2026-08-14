@@ -46,7 +46,7 @@ export default function Landing() {
           <span className="font-medium" style={{ color: "#4D6BFE" }}>
             DeepSeek
           </span>{" "}
-          · PDF 提取与服务端导出已适配 Vercel
+          · PDF 提取与服务端导出已适配云端部署
         </p>
         <p className="mt-1">你的简历数据不会被存储</p>
       </footer>

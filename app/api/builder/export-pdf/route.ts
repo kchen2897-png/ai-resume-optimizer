@@ -40,23 +40,39 @@ export async function POST(request: NextRequest) {
 let browserPromise: Promise<import('puppeteer-core').Browser> | null = null;
 
 async function getBrowser(): Promise<import('puppeteer-core').Browser> {
-  // Warm browser reuse (within same Lambda invocation)
+  // Reuse a warm browser, but never keep a rejected promise around. A single
+  // transient launch failure should not break every later export request.
   if (browserPromise) {
-    const b = await browserPromise;
-    if (b.isConnected()) return b;
+    try {
+      const browser = await browserPromise;
+      if (browser.isConnected()) return browser;
+    } catch {
+      // A fresh launch below will surface the current error if it still exists.
+    }
+    browserPromise = null;
   }
 
-  browserPromise = launchBrowser();
+  browserPromise = launchBrowser().catch((error) => {
+    browserPromise = null;
+    throw error;
+  });
   return browserPromise;
 }
 
 async function launchBrowser(): Promise<import('puppeteer-core').Browser> {
   const puppeteer = await import('puppeteer-core');
 
-  // ── Production: Vercel / serverless ──
-  const isServerless =
-    process.env.VERCEL === '1' || Boolean(process.env.AWS_LAMBDA_FUNCTION_NAME);
-  if (isServerless) {
+  // Railway, Vercel, and other Linux production runtimes use the Chromium
+  // binary shipped with the application. This avoids remote downloads and
+  // machine-specific executable paths during deployment.
+  const useBundledChromium =
+    process.platform === 'linux' &&
+    (process.env.NODE_ENV === 'production' ||
+      Boolean(process.env.RAILWAY_ENVIRONMENT) ||
+      process.env.VERCEL === '1' ||
+      Boolean(process.env.AWS_LAMBDA_FUNCTION_NAME));
+
+  if (useBundledChromium) {
     const chromium = await import('@sparticuz/chromium');
     return puppeteer.default.launch({
       args: [...chromium.default.args, '--no-sandbox', '--disable-gpu'],
@@ -66,10 +82,9 @@ async function launchBrowser(): Promise<import('puppeteer-core').Browser> {
     });
   }
 
-  // ── Local dev: system Chrome ──
+  // Local development uses an installed Chrome unless explicitly overridden.
   const localPath =
     process.env.CHROMIUM_LOCAL_EXEC_PATH ||
-    // Windows
     'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
 
   try {
@@ -96,12 +111,10 @@ async function renderPdf(html: string): Promise<Uint8Array> {
 
   try {
     await page.setContent(html, {
-      waitUntil: 'load',
+      waitUntil: 'domcontentloaded',
       timeout: 30000,
     });
-
-    // Small delay for fonts / layout to stabilise
-    await new Promise(r => setTimeout(r, 500));
+    await page.evaluate(() => document.fonts.ready);
 
     const pdf = await page.pdf({
       format: 'A4',

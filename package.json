@@ -13,6 +13,7 @@
     "start": "next start",
     "lint": "next lint",
     "check:upload": "node scripts/upload-smoke-test.mjs",
+    "check:deploy": "node scripts/deployment-smoke-test.mjs",
     "postinstall": "node -e \"const fs=require('fs');const p='node_modules/pdfjs-dist/legacy/build/pdf.worker.min.mjs';const d='public/pdf.worker.min.mjs';fs.existsSync(p)&&fs.copyFileSync(p,d)\""
   },
   "dependencies": {
