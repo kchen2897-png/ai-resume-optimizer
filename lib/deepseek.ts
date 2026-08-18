@@ -12,6 +12,8 @@ export async function callDeepSeekOptimize(
   const client = new OpenAI({
     apiKey,
     baseURL: "https://api.deepseek.com",
+    timeout: 45_000,
+    maxRetries: 2,
   });
 
   const response = await client.chat.completions.create({
@@ -59,6 +61,8 @@ export async function callDeepSeekPolish(
   const client = new OpenAI({
     apiKey,
     baseURL: "https://api.deepseek.com",
+    timeout: 45_000,
+    maxRetries: 2,
   });
 
   const response = await client.chat.completions.create({

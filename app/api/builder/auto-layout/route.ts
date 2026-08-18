@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+export const maxDuration = 60;
+
 interface LayoutAdjustment {
   baseFontSize: number;
   titleFontSize: number;
@@ -63,6 +65,7 @@ ${resumeText.slice(0, 3000)}
 
     const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
       method: 'POST',
+      signal: AbortSignal.timeout(45_000),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`,

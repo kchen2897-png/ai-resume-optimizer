@@ -216,7 +216,8 @@ export interface ResumeDocument {
 }
 
 export type EditorAction =
-  | { type: 'LOAD_MODULES'; modules: ResumeModule[]; fileName?: string | null; mode?: 'pre-optimize' | 'post-optimize'; _internal?: boolean }
+  | { type: 'LOAD_MODULES'; modules: ResumeModule[]; fileName?: string | null; mode?: 'pre-optimize' | 'post-optimize' }
+  | { type: 'RESTORE_AUTOSAVE'; modules: ResumeModule[] }
   | { type: 'SET_MODE'; mode: 'pre-optimize' | 'post-optimize' }
   | { type: 'UPDATE_MODULE_TITLE'; id: string; title: string }
   | { type: 'UPDATE_MODULE_STYLES'; id: string; styles: Partial<BlockStyles> }
@@ -235,6 +236,7 @@ export type EditorAction =
   | { type: 'ADD_SKILL_ITEM'; moduleId: string; item: SkillItem }
   | { type: 'UPDATE_SKILL_ITEM'; moduleId: string; item: SkillItem }
   | { type: 'REMOVE_SKILL_ITEM'; moduleId: string; itemId: string }
+  | { type: 'MOVE_MODULE_ITEM'; moduleId: string; itemId: string; direction: -1 | 1 }
   | { type: 'ADD_BULLET'; moduleId: string; itemId: string }
   | { type: 'UPDATE_BULLET'; moduleId: string; itemId: string; index: number; text: string }
   | { type: 'REMOVE_BULLET'; moduleId: string; itemId: string; index: number }
@@ -243,11 +245,13 @@ export type EditorAction =
   | { type: 'REMOVE_MODULE'; id: string }
   | { type: 'SELECT_MODULE'; id: string | null }
   | { type: 'TOGGLE_COLLAPSE'; id: string }
+  | { type: 'UNDO' }
+  | { type: 'REDO' }
   | { type: 'RESET' };
 
 export interface EditorState {
   document: ResumeDocument;
   history: ResumeDocument[];
-  historyIndex: number;
+  future: ResumeDocument[];
 }
 

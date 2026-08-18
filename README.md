@@ -121,24 +121,35 @@ npm run check:upload -- --url=https://你的域名/api/upload-resume
 └── public/
 ```
 
-## 部署到 Vercel
+## 部署到 Railway
 
-1. Fork 本仓库
-2. 在 Vercel 导入项目
-3. 添加环境变量：
+1. 在 Railway 服务中配置：
    - `DEEPSEEK_API_KEY` — DeepSeek API Key
    - `DEEPSEEK_MODEL` — `deepseek-chat`
-   - `CHROMIUM_REMOTE_EXEC_PATH` — `https://github.com/Sparticuz/chromium/releases/download/v141.0.0/chromium-v141.0.0-pack.tar.br`
-4. 升级到 Vercel Pro（Hobby 10s 超时不够 PDF 生成）
-5. 部署
+2. 从干净、已同步的 `master` 分支运行：
+
+```bash
+railway up --service powerful-mercy --environment production
+```
+
+3. Railway 会读取 `railway.json`，构建后通过 `/api/health` 才会切换线上流量。
+4. Chromium 已作为锁定依赖随应用部署，不再需要 `CHROMIUM_REMOTE_EXEC_PATH`。
+5. 部署完成后执行：
+
+```bash
+npm run check:deploy -- --url=https://你的域名
+npm run check:upload -- --url=https://你的域名/api/upload-resume
+```
 
 ## 稳定性约定
 
 - 使用 Node.js `>=22 <25`，避免 PDF 解析依赖在不支持的运行时上异常。
 - 直接依赖使用精确版本，部署时优先使用 `npm ci`，不要让依赖在重建时自动漂移。
 - `/api/upload-resume` 和 PDF 导出接口都配置了 60 秒执行时间。
+- `/api/health` 会检查服务、DeepSeek 配置和 PDF 运行环境；健康检查失败时 Railway 不会把故障版本切到线上。
+- GitHub Actions 会在 `master` 更新时执行完整生产构建，尽早发现类型和依赖问题。
 - 上传失败响应包含 `code`、`stage`、`requestId`。用户看到错误编号时，可以用该编号查服务端日志。
-- 部署后先跑 `npm run check:upload -- --url=https://你的域名/api/upload-resume`，确认上传和 PDF 提取链路正常。
+- 每次部署后同时运行 `check:deploy` 和 `check:upload`，验证页面、健康接口、PDF 导出、上传和文字提取。
 
 ## License
 

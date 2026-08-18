@@ -25,6 +25,7 @@ export async function parseResumeWithAI(rawText: string): Promise<ParseResult> {
   try {
     const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
       method: "POST",
+      signal: AbortSignal.timeout(45_000),
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${apiKey}`,

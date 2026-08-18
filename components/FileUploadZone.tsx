@@ -15,7 +15,7 @@ interface FileUploadZoneProps {
 
 type Status = "idle" | "parsing" | "done" | "error";
 
-const MAX_SIZE = 10 * 1024 * 1024;
+const MAX_SIZE = 4 * 1024 * 1024;
 const ACCEPTED = ".pdf,.docx,.txt";
 
 function getAcceptString() { return ACCEPTED; }
@@ -67,7 +67,7 @@ export default function FileUploadZone({ onTextExtracted, onModulesParsed, onFil
     }
     if (file.size > MAX_SIZE) {
       setStatus("error");
-      setErrorMessage("文件大小超过 10MB 限制");
+      setErrorMessage("文件大小超过 4MB 限制，请复制文字后粘贴导入");
       return;
     }
 
@@ -130,7 +130,7 @@ export default function FileUploadZone({ onTextExtracted, onModulesParsed, onFil
             </div>
             <div className="flex-1">
               <p className="font-medium text-gray-600">拖拽简历文件到这里，或<span className="text-brand-600">点击选择文件</span></p>
-              <p className="text-xs text-gray-400">支持 PDF、DOCX、TXT 格式，最大 10MB</p>
+              <p className="text-xs text-gray-400">支持 PDF、DOCX、TXT 格式，最大 4MB</p>
             </div>
             <FileText className="h-4 w-4 flex-shrink-0 text-gray-300" />
           </>

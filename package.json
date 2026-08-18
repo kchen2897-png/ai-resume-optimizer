@@ -13,6 +13,7 @@
     "start": "next start",
     "lint": "next lint",
     "check:upload": "node scripts/upload-smoke-test.mjs",
+    "check:deploy": "node scripts/deployment-smoke-test.mjs",
     "postinstall": "node -e \"const fs=require('fs');const p='node_modules/pdfjs-dist/legacy/build/pdf.worker.min.mjs';const d='public/pdf.worker.min.mjs';fs.existsSync(p)&&fs.copyFileSync(p,d)\""
   },
   "dependencies": {
@@ -20,27 +21,27 @@
     "@dnd-kit/sortable": "10.0.0",
     "@dnd-kit/utilities": "3.2.2",
     "@napi-rs/canvas": "1.0.1",
-    "@sparticuz/chromium": "148.0.0",
+    "@sparticuz/chromium": "149.0.0",
     "clsx": "2.1.1",
     "lucide-react": "0.468.0",
     "mammoth": "1.12.0",
-    "next": "15.5.19",
+    "next": "15.5.23",
     "openai": "6.36.0",
     "pdf-parse": "2.4.5",
-    "pdfjs-dist": "5.7.284",
-    "puppeteer-core": "24.43.1",
+    "pdfjs-dist": "6.2.108",
+    "puppeteer-core": "25.7.0",
     "react": "19.2.5",
     "react-dom": "19.2.5"
   },
   "overrides": {
-    "postcss": "8.5.14"
+    "postcss": "8.5.26"
   },
   "devDependencies": {
     "@types/node": "22.19.17",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "autoprefixer": "10.5.0",
-    "postcss": "8.5.14",
+    "postcss": "8.5.26",
     "tailwindcss": "3.4.19",
     "typescript": "5.9.3"
   }
