@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 
 type Status = "idle" | "uploading" | "parsing" | "done" | "error";
 
-const MAX_SIZE = 10 * 1024 * 1024;
+const MAX_SIZE = 4 * 1024 * 1024;
 
 function formatUploadError(json: any) {
   const message = json?.error || "文件处理失败";
@@ -34,7 +34,7 @@ export default function LandingUpload() {
     // Validate size
     if (file.size > MAX_SIZE) {
       setStatus("error");
-      setErrorMessage("文件大小超过 10MB 限制");
+      setErrorMessage("文件大小超过 4MB 限制。建议复制 PDF 文字后粘贴导入。");
       return;
     }
 
@@ -146,7 +146,7 @@ export default function LandingUpload() {
   }
 
   return (
-    <div className="w-full max-w-xl mx-auto">
+    <div className="w-full">
       <input
         ref={inputRef}
         type="file"
@@ -162,7 +162,7 @@ export default function LandingUpload() {
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         className={cn(
-          "relative cursor-pointer rounded-2xl border-2 border-dashed p-10 transition-all duration-200 text-center",
+          "relative cursor-pointer rounded-2xl border-2 border-dashed p-8 transition-all duration-200 text-center",
           dragOver && "border-brand-500 bg-brand-50/60 scale-[1.01]",
           status === "idle" &&
             "border-gray-300 hover:border-brand-400 hover:bg-brand-50/30",
@@ -179,13 +179,13 @@ export default function LandingUpload() {
               <FileUp className="h-8 w-8 text-brand-500" />
             </div>
             <p className="mb-2 text-lg font-semibold text-gray-800">
-              上传你的简历 PDF
+              可选：上传 PDF 自动导入
             </p>
             <p className="mb-1 text-sm text-gray-500">
-              拖拽文件到这里，或 <span className="text-brand-600 font-medium">点击选择文件</span>
+              拖拽 PDF 到这里，或 <span className="text-brand-600 font-medium">点击选择文件</span>
             </p>
             <p className="text-xs text-gray-400">
-              支持 PDF 格式，最大 10MB · AI 自动识别并结构化
+              支持可复制文字的 PDF，最大 4MB · 失败后可改用粘贴文本
             </p>
           </>
         )}

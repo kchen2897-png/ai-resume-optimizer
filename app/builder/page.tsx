@@ -5,9 +5,10 @@ import { EditorProvider, useEditor } from "@/contexts/EditorContext";
 import VisualEditor from "@/components/editor/VisualEditor";
 import FileUploadZone from "@/components/FileUploadZone";
 import LoadingState from "@/components/LoadingState";
+import PasteResumeForm from "@/components/PasteResumeForm";
 import type { ResumeModule } from "@/lib/editor-types";
 import { hydrateModules } from "@/lib/resume-module-normalizer";
-import { Plus, Upload } from "lucide-react";
+import { Plus, ClipboardPaste } from "lucide-react";
 
 function BuilderContent() {
   const [targetRole, setTargetRole] = useState("");
@@ -90,14 +91,22 @@ function BuilderContent() {
         <div className="w-full max-w-lg text-center">
           <div className="mb-8">
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-50">
-              <Upload className="h-8 w-8 text-brand-500" />
+              <ClipboardPaste className="h-8 w-8 text-brand-500" />
             </div>
             <h2 className="text-xl font-semibold text-gray-800 mb-2">
-              导入你的简历
+              开始制作简历
             </h2>
             <p className="text-sm text-gray-500">
-              上传 PDF 简历，AI 自动解析结构化，开始编辑
+              推荐粘贴已有简历文字，也可以从空白工作台开始
             </p>
+          </div>
+
+          <PasteResumeForm compact onParsed={handleUploadComplete} />
+
+          <div className="my-8 flex items-center gap-4">
+            <div className="flex-1 border-t border-gray-200" />
+            <span className="text-sm text-gray-400">可选 PDF 导入</span>
+            <div className="flex-1 border-t border-gray-200" />
           </div>
 
           {/* Server-side upload: sends to /api/upload-resume */}
@@ -139,7 +148,6 @@ function BuilderContent() {
             <p className="mt-3 text-sm text-red-500">{uploadError}</p>
           )}
 
-          {/* Divider */}
           <div className="my-8 flex items-center gap-4">
             <div className="flex-1 border-t border-gray-200" />
             <span className="text-sm text-gray-400">或者</span>

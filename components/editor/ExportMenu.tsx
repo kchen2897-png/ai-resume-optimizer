@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Download, Copy, FileText, Code2, Check, File, Loader2 } from 'lucide-react';
+import { Download, FileText, Code2, Check, File, Loader2, Printer } from 'lucide-react';
 import { useEditor } from '@/contexts/EditorContext';
 import { serializeModulesToText, serializeModulesToHTML } from '@/lib/resume-serializer';
+import { buildA4Html } from '@/lib/resume-pdf-html';
 import { copyToClipboard } from '@/lib/utils';
 
 export default function ExportMenu() {
@@ -74,6 +75,15 @@ export default function ExportMenu() {
     }
   }
 
+  function openPrintPreview() {
+    const html = buildA4Html(modules);
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank', 'noopener,noreferrer');
+    setOpen(false);
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  }
+
   return (
     <div className="relative" ref={menuRef}>
       <button
@@ -139,6 +149,17 @@ export default function ExportMenu() {
             <div>
               <p className="font-medium">导出为 PDF</p>
               <p className="text-xs text-gray-400">服务端渲染，一张 A4 纸</p>
+            </div>
+          </button>
+
+          <button
+            onClick={openPrintPreview}
+            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 text-left"
+          >
+            <Printer className="h-4 w-4 text-gray-400" />
+            <div>
+              <p className="font-medium">打开打印版预览</p>
+              <p className="text-xs text-gray-400">可用浏览器另存为 PDF</p>
             </div>
           </button>
         </div>

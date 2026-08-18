@@ -5,7 +5,7 @@ import { parseResumeWithAI } from "@/lib/ai-parser";
 
 export const maxDuration = 60; // PDF extraction + AI parsing needs time
 
-const MAX_UPLOAD_SIZE = 10 * 1024 * 1024;
+const MAX_UPLOAD_SIZE = 4 * 1024 * 1024;
 
 type UploadErrorCode =
   | "MISSING_FILE"
@@ -67,13 +67,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate file size (max 10MB)
+    // Keep uploads below common serverless request-body limits.
     if (file.size > MAX_UPLOAD_SIZE) {
       return uploadError(
         400,
         "FILE_TOO_LARGE",
         "validation",
-        "文件大小超过 10MB 限制",
+        "文件大小超过 4MB 限制。建议复制 PDF 文字后粘贴导入。",
         requestId,
         { maxSize: MAX_UPLOAD_SIZE }
       );

@@ -31,19 +31,16 @@ function saveAutosave(modules: ResumeModule[]) {
 }
 
 function createInitialDocument(): ResumeDocument {
-  const saved = loadAutosave();
-  return { modules: saved || [], mode: 'pre-optimize', selectedModuleId: null, fileName: null };
+  return { modules: [], mode: 'pre-optimize', selectedModuleId: null, fileName: null };
 }
 
 function createInitialState(): EditorState {
-  return { document: createInitialDocument(), history: [], historyIndex: -1 };
+  return { document: createInitialDocument(), history: [], future: [] };
 }
 
 function pushHistory(state: EditorState): EditorState {
-  const h = state.history.slice(0, state.historyIndex + 1);
-  h.push(structuredClone(state.document));
-  if (h.length > MAX_HISTORY) h.shift();
-  return { ...state, history: h, historyIndex: h.length - 1 };
+  const history = [...state.history, structuredClone(state.document)].slice(-MAX_HISTORY);
+  return { ...state, history, future: [] };
 }
 
 function recomputeOrders(mods: ResumeModule[]): ResumeModule[] {
@@ -72,12 +69,17 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
   switch (action.type) {
 
     case 'LOAD_MODULES': {
-      if (action._internal) {
-        return { ...state, document: { ...state.document, modules: action.modules, mode: action.mode ?? 'pre-optimize', fileName: action.fileName ?? null, selectedModuleId: null } };
-      }
       const ns = pushHistory(state);
       return { ...ns, document: { ...ns.document, modules: action.modules, mode: action.mode ?? 'pre-optimize', fileName: action.fileName ?? null, selectedModuleId: null } };
     }
+
+    case 'RESTORE_AUTOSAVE':
+      return {
+        ...state,
+        document: { ...state.document, modules: action.modules, selectedModuleId: null },
+        history: [],
+        future: [],
+      };
 
     case 'SET_MODE':
       return { ...state, document: { ...state.document, mode: action.mode } };
@@ -153,6 +155,30 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
       return { ...ns, document: { ...ns.document, modules: ns.document.modules.map((m) => m.id === action.moduleId ? { ...m, items: (m as any).items?.filter((it: any) => it.id !== action.itemId) ?? [] } : m) } };
     }
 
+    case 'MOVE_MODULE_ITEM': {
+      const currentModule = state.document.modules.find((m) => m.id === action.moduleId);
+      if (!currentModule || !('items' in currentModule)) return state;
+
+      const currentIndex = currentModule.items.findIndex((item) => item.id === action.itemId);
+      const targetIndex = currentIndex + action.direction;
+      if (currentIndex === -1 || targetIndex < 0 || targetIndex >= currentModule.items.length) return state;
+
+      const ns = pushHistory(state);
+      return {
+        ...ns,
+        document: {
+          ...ns.document,
+          modules: ns.document.modules.map((module) => {
+            if (module.id !== action.moduleId || !('items' in module)) return module;
+            const items: Array<{ id: string }> = [...module.items];
+            const [movedItem] = items.splice(currentIndex, 1);
+            items.splice(targetIndex, 0, movedItem);
+            return { ...module, items } as ResumeModule;
+          }),
+        },
+      };
+    }
+
     case 'ADD_BULLET': {
       const ns = pushHistory(state);
       return { ...ns, document: { ...ns.document, modules: ns.document.modules.map((m) => m.id === action.moduleId ? { ...m, items: (m as any).items?.map((it: any) => it.id === action.itemId ? { ...it, bulletPoints: [...(it.bulletPoints || []), ''] } : it) ?? [] } : m) } };
@@ -200,6 +226,26 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
     case 'TOGGLE_COLLAPSE':
       return { ...state, document: { ...state.document, modules: state.document.modules.map((m) => m.id === action.id ? { ...m, isCollapsed: !m.isCollapsed } as ResumeModule : m) } };
 
+    case 'UNDO': {
+      const previous = state.history.at(-1);
+      if (!previous) return state;
+      return {
+        document: structuredClone(previous),
+        history: state.history.slice(0, -1),
+        future: [structuredClone(state.document), ...state.future].slice(0, MAX_HISTORY),
+      };
+    }
+
+    case 'REDO': {
+      const [next, ...remainingFuture] = state.future;
+      if (!next) return state;
+      return {
+        document: structuredClone(next),
+        history: [...state.history, structuredClone(state.document)].slice(-MAX_HISTORY),
+        future: remainingFuture,
+      };
+    }
+
     case 'RESET':
       return createInitialState();
 
@@ -223,10 +269,17 @@ const EditorContext = createContext<EditorContextValue | null>(null);
 
 export function EditorProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(editorReducer, undefined, createInitialState);
-  const [hasSavedData, setHasSavedData] = useState(() => loadAutosave() !== null);
+  const [hasSavedData, setHasSavedData] = useState(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const canUndo = state.historyIndex >= 0;
-  const canRedo = state.historyIndex < state.history.length - 1;
+  const canUndo = state.history.length > 0;
+  const canRedo = state.future.length > 0;
+
+  useEffect(() => {
+    const saved = loadAutosave();
+    if (!saved) return;
+    dispatch({ type: 'RESTORE_AUTOSAVE', modules: saved });
+    setHasSavedData(true);
+  }, []);
 
   // Auto-save modules to localStorage (debounced 800ms)
   useEffect(() => {
@@ -241,18 +294,12 @@ export function EditorProvider({ children }: { children: ReactNode }) {
   }, [state.document.modules]);
 
   const undo = useCallback(() => {
-    if (canUndo) {
-      const doc = state.history[state.historyIndex];
-      dispatch({ type: 'LOAD_MODULES', modules: doc.modules, mode: doc.mode, _internal: true });
-    }
-  }, [canUndo, state.history, state.historyIndex]);
+    if (canUndo) dispatch({ type: 'UNDO' });
+  }, [canUndo]);
 
   const redo = useCallback(() => {
-    if (canRedo) {
-      const doc = state.history[state.historyIndex + 1];
-      dispatch({ type: 'LOAD_MODULES', modules: doc.modules, mode: doc.mode, _internal: true });
-    }
-  }, [canRedo, state.history, state.historyIndex]);
+    if (canRedo) dispatch({ type: 'REDO' });
+  }, [canRedo]);
 
   const clearSavedData = useCallback(() => {
     localStorage.removeItem(AUTOSAVE_KEY);

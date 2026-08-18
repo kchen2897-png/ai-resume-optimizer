@@ -45,7 +45,7 @@ async function getBrowser(): Promise<import('puppeteer-core').Browser> {
   if (browserPromise) {
     try {
       const browser = await browserPromise;
-      if (browser.isConnected()) return browser;
+      if (browser.connected) return browser;
     } catch {
       // A fresh launch below will surface the current error if it still exists.
     }

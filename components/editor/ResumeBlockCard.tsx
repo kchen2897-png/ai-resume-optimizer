@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, ChevronDown, ChevronRight, Trash2, Pencil, Plus, X, Camera, ImageIcon } from 'lucide-react';
+import { GripVertical, ChevronDown, ChevronRight, Trash2, Pencil, Plus, X, Camera, ImageIcon, ArrowUp, ArrowDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useEditor } from '@/contexts/EditorContext';
 import type { ResumeModule, BlockStyles, EducationItem, ExperienceItem, ProjectItem, SkillItem } from '@/lib/editor-types';
@@ -343,6 +343,39 @@ function HeaderEditor({ moduleId, content, photo, targetRole = '' }: { moduleId:
   );
 }
 
+function ItemOrderControls({ moduleId, itemId, index, total, label }: { moduleId: string; itemId: string; index: number; total: number; label: string }) {
+  const { dispatch } = useEditor();
+
+  function move(direction: -1 | 1) {
+    dispatch({ type: 'MOVE_MODULE_ITEM', moduleId, itemId, direction });
+  }
+
+  return (
+    <div className="flex items-center gap-0.5" aria-label={`${label}排序`}>
+      <button
+        type="button"
+        onClick={(event) => { event.stopPropagation(); move(-1); }}
+        disabled={index === 0}
+        title={`上移${label}`}
+        aria-label={`上移${label}`}
+        className="flex h-7 w-7 items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-white hover:text-brand-600 disabled:cursor-not-allowed disabled:opacity-25"
+      >
+        <ArrowUp className="h-3.5 w-3.5" />
+      </button>
+      <button
+        type="button"
+        onClick={(event) => { event.stopPropagation(); move(1); }}
+        disabled={index === total - 1}
+        title={`下移${label}`}
+        aria-label={`下移${label}`}
+        className="flex h-7 w-7 items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-white hover:text-brand-600 disabled:cursor-not-allowed disabled:opacity-25"
+      >
+        <ArrowDown className="h-3.5 w-3.5" />
+      </button>
+    </div>
+  );
+}
+
 function EducationEditor({ moduleId, items, targetRole = '' }: { moduleId: string; items: EducationItem[]; targetRole?: string }) {
   const { dispatch } = useEditor();
 
@@ -360,11 +393,14 @@ function EducationEditor({ moduleId, items, targetRole = '' }: { moduleId: strin
 
   return (
     <div className="space-y-4">
-      {items.map((item) => (
+      {items.map((item, index) => (
         <div key={item.id} className="rounded-xl border border-gray-100 bg-gray-50/50 p-3 space-y-2">
           <div className="flex justify-between items-center">
-            <span className="text-xs font-medium text-gray-500">教育经历</span>
-            <button onClick={() => remove(item.id)} className="text-gray-300 hover:text-red-400"><X className="h-3.5 w-3.5" /></button>
+            <span className="text-xs font-medium text-gray-500">教育经历 {index + 1}</span>
+            <div className="flex items-center gap-1">
+              <ItemOrderControls moduleId={moduleId} itemId={item.id} index={index} total={items.length} label={`教育经历 ${index + 1}`} />
+              <button type="button" onClick={() => remove(item.id)} title="删除教育经历" aria-label="删除教育经历" className="flex h-7 w-7 items-center justify-center rounded-md text-gray-300 hover:bg-white hover:text-red-400"><X className="h-3.5 w-3.5" /></button>
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-2">
             <Field label="学校名称"><input className={inputCls} value={item.school} onChange={(e) => update({ ...item, school: e.target.value })} placeholder="云南财经大学" /></Field>
@@ -407,11 +443,14 @@ function ExperienceEditor({ moduleId, items, targetRole = '' }: { moduleId: stri
 
   return (
     <div className="space-y-4">
-      {items.map((item) => (
+      {items.map((item, index) => (
         <div key={item.id} className="rounded-xl border border-gray-100 bg-gray-50/50 p-3 space-y-2">
           <div className="flex justify-between items-center">
-            <span className="text-xs font-medium text-gray-500">经历条目</span>
-            <button onClick={() => remove(item.id)} className="text-gray-300 hover:text-red-400"><X className="h-3.5 w-3.5" /></button>
+            <span className="text-xs font-medium text-gray-500">经历 {index + 1}</span>
+            <div className="flex items-center gap-1">
+              <ItemOrderControls moduleId={moduleId} itemId={item.id} index={index} total={items.length} label={`经历 ${index + 1}`} />
+              <button type="button" onClick={() => remove(item.id)} title="删除经历" aria-label="删除经历" className="flex h-7 w-7 items-center justify-center rounded-md text-gray-300 hover:bg-white hover:text-red-400"><X className="h-3.5 w-3.5" /></button>
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-2">
             <Field label="公司/组织名称"><input className={inputCls} value={item.organization} onChange={(e) => update({ ...item, organization: e.target.value })} placeholder="腾讯科技" /></Field>
@@ -449,11 +488,14 @@ function ProjectEditor({ moduleId, items, targetRole = '' }: { moduleId: string;
 
   return (
     <div className="space-y-4">
-      {items.map((item) => (
+      {items.map((item, index) => (
         <div key={item.id} className="rounded-xl border border-gray-100 bg-gray-50/50 p-3 space-y-2">
           <div className="flex justify-between items-center">
-            <span className="text-xs font-medium text-gray-500">项目条目</span>
-            <button onClick={() => remove(item.id)} className="text-gray-300 hover:text-red-400"><X className="h-3.5 w-3.5" /></button>
+            <span className="text-xs font-medium text-gray-500">项目 {index + 1}</span>
+            <div className="flex items-center gap-1">
+              <ItemOrderControls moduleId={moduleId} itemId={item.id} index={index} total={items.length} label={`项目 ${index + 1}`} />
+              <button type="button" onClick={() => remove(item.id)} title="删除项目" aria-label="删除项目" className="flex h-7 w-7 items-center justify-center rounded-md text-gray-300 hover:bg-white hover:text-red-400"><X className="h-3.5 w-3.5" /></button>
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-2">
             <Field label="项目名称"><input className={inputCls} value={item.name} onChange={(e) => update({ ...item, name: e.target.value })} placeholder="微信支付重构" /></Field>
@@ -490,8 +532,9 @@ function SkillsEditor({ moduleId, items }: { moduleId: string; items: SkillItem[
 
   return (
     <div className="space-y-2">
-      {items.map((item) => (
+      {items.map((item, index) => (
         <div key={item.id} className="flex items-center gap-2">
+          <ItemOrderControls moduleId={moduleId} itemId={item.id} index={index} total={items.length} label={`条目 ${index + 1}`} />
           <input
             className={cn(inputCls, 'flex-1')}
             value={item.name}
