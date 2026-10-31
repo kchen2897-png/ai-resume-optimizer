@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { buildA4Html } from '@/lib/resume-pdf-html';
+import { fontFaceCss } from '@/lib/resume-pdf-font';
 import type { ResumeModule } from '@/lib/editor-types';
 
 export const maxDuration = 60;
@@ -13,7 +14,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '缺少简历模块数据' }, { status: 400 });
     }
 
-    const html = buildA4Html(modules);
+    const html = buildA4Html(modules, fontFaceCss());
 
     const pdfBuffer = await renderPdf(html);
 

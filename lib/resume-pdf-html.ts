@@ -1,28 +1,11 @@
 import type { ResumeModule } from './editor-types';
 import { isGridModule } from './editor-types';
 import { parseHeader, esc, escAttr } from './header-parser';
-import { readFileSync } from 'fs';
-import path from 'path';
 
 /* ── Constants ── */
 const A4_W_MM = 210;
 const A4_H_MM = 297;
 const PAD_MM = 15; // must match preview padding
-
-// Embed the bundled font: setContent pages cannot reliably load file:// fonts,
-// and serverless Chromium does not ship with system Chinese fonts.
-let cjkFontData: string | undefined;
-function fontFaceCss(): string {
-  cjkFontData ??= readFileSync(path.join(process.cwd(), 'public/fonts/NotoSansSC.ttf')).toString('base64');
-  return `
-  @font-face{
-    font-family:"ResumeCJK";
-    src:url("data:font/ttf;base64,${cjkFontData}") format("truetype");
-    font-weight:100 900;
-    font-style:normal;
-    font-display:block;
-  }`;
-}
 
 /* ── Date format ── */
 function fmtDate(item: Record<string, unknown>): string {
@@ -176,7 +159,15 @@ function renderModule(mod: ResumeModule): string {
 }
 
 /* ── Build full A4 HTML document ── */
-export function buildA4Html(modules: ResumeModule[]): string {
+export function buildA4Html(modules: ResumeModule[], fontCss = `
+  @font-face {
+    font-family:"ResumeCJK";
+    src:url("/fonts/NotoSansSC.ttf") format("truetype");
+    font-weight:100 900;
+    font-style:normal;
+    font-display:block;
+  }
+`): string {
   const sorted = modules.slice().sort((a, b) => a.order - b.order);
   const visible = sorted.filter(m => !m.isCollapsed);
 
@@ -200,7 +191,7 @@ export function buildA4Html(modules: ResumeModule[]): string {
 <head>
 <meta charset="UTF-8">
 <style>
-  ${fontFaceCss()}
+  ${fontCss}
   *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
   body{
     font-family:"Inter","ResumeCJK",-apple-system,BlinkMacSystemFont,"Microsoft YaHei","Segoe UI",sans-serif;
