@@ -114,7 +114,13 @@ async function renderPdf(html: string): Promise<Uint8Array> {
       waitUntil: 'domcontentloaded',
       timeout: 30000,
     });
-    await page.evaluate(() => document.fonts.ready);
+    await page.evaluate(async () => {
+      const loaded = await document.fonts.load('14px "ResumeCJK"', '中文简历');
+      await document.fonts.ready;
+      if (!loaded.length || !document.fonts.check('14px "ResumeCJK"', '中文简历')) {
+        throw new Error('中文字体加载失败，请重试导出');
+      }
+    });
 
     const pdf = await page.pdf({
       format: 'A4',

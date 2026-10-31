@@ -14,6 +14,7 @@ const nextConfig: NextConfig = {
       "node_modules/pdf-parse/dist/pdf-parse/cjs/pdf.worker.mjs",
     ],
     "/api/builder/export-pdf": [
+      "./public/fonts/NotoSansSC.ttf",
       "node_modules/@sparticuz/chromium/**/*",
       "node_modules/puppeteer-core/**/*",
     ],

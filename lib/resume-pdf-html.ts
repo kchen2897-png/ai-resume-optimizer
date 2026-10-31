@@ -1,11 +1,28 @@
 import type { ResumeModule } from './editor-types';
 import { isGridModule } from './editor-types';
 import { parseHeader, esc, escAttr } from './header-parser';
+import { readFileSync } from 'fs';
+import path from 'path';
 
 /* ── Constants ── */
 const A4_W_MM = 210;
 const A4_H_MM = 297;
 const PAD_MM = 15; // must match preview padding
+
+// Embed the bundled font: setContent pages cannot reliably load file:// fonts,
+// and serverless Chromium does not ship with system Chinese fonts.
+let cjkFontData: string | undefined;
+function fontFaceCss(): string {
+  cjkFontData ??= readFileSync(path.join(process.cwd(), 'public/fonts/NotoSansSC.ttf')).toString('base64');
+  return `
+  @font-face{
+    font-family:"ResumeCJK";
+    src:url("data:font/ttf;base64,${cjkFontData}") format("truetype");
+    font-weight:100 900;
+    font-style:normal;
+    font-display:block;
+  }`;
+}
 
 /* ── Date format ── */
 function fmtDate(item: Record<string, unknown>): string {
@@ -44,7 +61,7 @@ function renderModule(mod: ResumeModule): string {
   const fs = s.fontSize || 13; // base font size (body)
   const lh = s.lineHeight || 1.55;
   const color = s.color || '#0f172a';
-  const font = `"${s.fontFamily}", "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Microsoft YaHei", "Segoe UI", sans-serif`;
+  const font = `"${s.fontFamily}", "ResumeCJK", -apple-system, BlinkMacSystemFont, "Microsoft YaHei", "Segoe UI", sans-serif`;
 
   /* ── HEADER ── */
   if (mod.type === 'header') {
@@ -183,9 +200,10 @@ export function buildA4Html(modules: ResumeModule[]): string {
 <head>
 <meta charset="UTF-8">
 <style>
+  ${fontFaceCss()}
   *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
   body{
-    font-family:"Inter","Noto Sans SC",-apple-system,BlinkMacSystemFont,"Microsoft YaHei","Segoe UI",sans-serif;
+    font-family:"Inter","ResumeCJK",-apple-system,BlinkMacSystemFont,"Microsoft YaHei","Segoe UI",sans-serif;
     color:#1f2937;
     background:#fff;
     -webkit-print-color-adjust:exact;
